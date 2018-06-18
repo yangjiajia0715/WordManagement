@@ -1,0 +1,43 @@
+ext {
+
+    android = [
+            compileSdkVersion: 26,//25-->26 Glide v3-->v4
+            buildToolsVersion: "26.0.2",//25.0.2-->26.0.2 2017-10-30 AS升级到3.0
+            applicationId    : "com.testandroid.yang",
+            minSdkVersion    : 17,//16-->17,layout_marginEnd min17 2017-9-6
+            targetSdkVersion : 24,//24-->21, 21-->23 2017-10-31 测试运行时权限问题
+            versionCode      : 17,
+            versionName      : "1.17"
+    ]
+
+//    supportVersion = "25.3.1"
+    supportVersion = "26.0.0-alpha1"//2017-8-31 BottomNavigationView
+    multidexVersion = "1.0.1"
+
+    rxjavaVersion = "2.1.2"//2017-3-16,2017-8-13：2.0.7-->2.1.2
+    rxandroidVersion = "2.0.1"
+
+    rxlifecycleVersion = "2.0.1"//同rxlifecycle-components
+
+    //3.6.0-->3.8.0 2018-5-17 21:17:38，日志拦截器报错
+    //java.lang.UnsupportedOperationException
+//    at java.util.Collections$UnmodifiableCollection.add(Collections.java:1128)
+//    at com.testandroid.yang.retrofit.ApiClient.<init>(ApiClient.java:66)
+    okhttp3Version = "3.8.0"
+//    okhttp3InterceptorVersion = "3.0.1"
+
+    retrofitVersion = "2.2.0"
+    retrofit2AdapterRxjavaVersion = "2.0.0-beta4"
+    retrofit2ConverterGsonVersion = "2.2.0"
+    retrofit2AdapterRxjava2Version = "2.2.0"
+
+    nineoldandroidsVersion = "2.4.0"
+
+    butterknifeVersion = "8.5.1"
+
+    vlayoutVersion = "1.0.5"
+
+    commonIoVersion = "2.5"
+    constraintVersion = "1.0.2"
+
+}
