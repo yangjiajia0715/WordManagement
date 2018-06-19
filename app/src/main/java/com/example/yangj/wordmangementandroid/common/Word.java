@@ -1,4 +1,4 @@
-package com.example.yangj.wordmangementandroid;
+package com.example.yangj.wordmangementandroid.common;
 
 import java.io.Serializable;
 
@@ -7,6 +7,7 @@ import java.io.Serializable;
  */
 public class Word implements Serializable {
 
+    public int id;
     //单词英文拼写
 //    @NotEmpty
     private String englishSpell;
