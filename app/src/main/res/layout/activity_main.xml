@@ -7,23 +7,61 @@
     android:orientation="vertical"
     tools:context=".activitiy.MainActivity">
 
-    <Button
-        android:id="@+id/btn_load_file"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="解析文件" />
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btn_update_word"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="上传单词" />
+        <Button
+            android:id="@+id/btn_load_file"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="解析文件" />
 
-    <Button
-        android:id="@+id/btn_update_questions"
+        <Button
+            android:id="@+id/btn_upload_audio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上传音频" />
+
+        <Button
+            android:id="@+id/btn_upload_word_image"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上传单词图片" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="上传练习" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_upload_word"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上传单词" />
+
+        <Button
+            android:id="@+id/btn_upload_questions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上传练习" />
+
+        <Button
+            android:id="@+id/btn_show_word_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="显示单词信息" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"

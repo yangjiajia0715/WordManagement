@@ -7,8 +7,8 @@ package com.example.yangj.wordmangementandroid.common;
 
 public class ResultBeanInfo<R> implements BaseInfo {
     private R data;
-    private int flag;
-    private String msg;
+    private int code;
+    private String message;
 
     public R getData() {
         return data;
@@ -18,19 +18,19 @@ public class ResultBeanInfo<R> implements BaseInfo {
         this.data = data;
     }
 
-    public int getFlag() {
-        return flag;
+    public int getCode() {
+        return code;
     }
 
-    public void setFlag(int flag) {
-        this.flag = flag;
+    public void setCode(int code) {
+        this.code = code;
     }
 
-    public String getMsg() {
-        return msg;
+    public String getMessage() {
+        return message;
     }
 
-    public void setMsg(String msg) {
-        this.msg = msg;
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

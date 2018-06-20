@@ -2,6 +2,7 @@ package com.example.yangj.wordmangementandroid.retrofit;
 
 import com.example.yangj.wordmangementandroid.BuildConfig;
 import com.example.yangj.wordmangementandroid.common.FileUploadInfo;
+import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
 import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 
@@ -96,10 +97,18 @@ public class ApiClient {
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
-    public Observable<ResponseBody> createWord(Word word) {
+    public Observable<ResultBeanInfo<Word>> createWord(Word word) {
         return mApiQiBu.create(word);
 //                .subscribeOn(Schedulers.newThread())
 //                .observeOn(AndroidSchedulers.mainThread());
     }
+
+    public Observable<ResultBeanInfo<OssTokenInfo>> getOssToken() {
+        return mApiQiBu.getSTSToken()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread());
+    }
+
+
 
 }

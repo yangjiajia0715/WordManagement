@@ -28,7 +28,7 @@ public class Word implements Serializable {
 //    @URL
     private String image;
 
-//    @URL
+    //    @URL
     private String rectangleImage;
 
     //释义
@@ -43,7 +43,7 @@ public class Word implements Serializable {
 //    @NotEmpty
     private String exampleSentence;
 
-//    @URL
+    //    @URL
     private String exampleSentenceAudio;
 
 
@@ -129,17 +129,16 @@ public class Word implements Serializable {
 
     @Override
     public String toString() {
-        return "Word{" +
-                "englishSpell='" + englishSpell + '\'' +
-                ", chineseSpell='" + chineseSpell + '\'' +
-                ", englishPronunciation='" + englishPronunciation + '\'' +
-                ", chinesePronunciation='" + chinesePronunciation + '\'' +
-                ", image='" + image + '\'' +
-                ", rectangleImage='" + rectangleImage + '\'' +
-                ", meaning='" + meaning + '\'' +
-                ", meaningAudio='" + meaningAudio + '\'' +
-                ", exampleSentence='" + exampleSentence + '\'' +
-                ", exampleSentenceAudio='" + exampleSentenceAudio + '\'' +
-                '}';
+        return "id=" + id +
+                "\nenglishSpell='" + englishSpell + '\'' +
+                "\nchineseSpell='" + chineseSpell + '\'' +
+                "\nenglishPronunciation='" + englishPronunciation + '\'' +
+                "\nchinesePronunciation='" + chinesePronunciation + '\'' +
+                "\nimage='" + image + '\'' +
+                "\nrectangleImage='" + rectangleImage + '\'' +
+                "\nmeaning='" + meaning + '\'' +
+                "\nmeaningAudio='" + meaningAudio + '\'' +
+                "\nexampleSentence='" + exampleSentence + '\'' +
+                "\nexampleSentenceAudio='" + exampleSentenceAudio + '\'';
     }
 }

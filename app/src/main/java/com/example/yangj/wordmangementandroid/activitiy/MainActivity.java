@@ -1,18 +1,32 @@
 package com.example.yangj.wordmangementandroid.activitiy;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.alibaba.sdk.android.oss.ClientException;
+import com.alibaba.sdk.android.oss.OSS;
+import com.alibaba.sdk.android.oss.ServiceException;
+import com.alibaba.sdk.android.oss.callback.OSSCompletedCallback;
+import com.alibaba.sdk.android.oss.model.PutObjectRequest;
+import com.alibaba.sdk.android.oss.model.PutObjectResult;
+import com.example.yangj.wordmangementandroid.MyApp;
 import com.example.yangj.wordmangementandroid.R;
+import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
+import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
@@ -21,8 +35,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -41,13 +59,26 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION = 262;
     @BindView(R.id.btn_load_file)
     Button mBtnLoadFile;
-    @BindView(R.id.btn_update_word)
+    @BindView(R.id.btn_upload_word)
     Button mBtnUpdateWord;
-    @BindView(R.id.btn_update_questions)
+    @BindView(R.id.btn_upload_questions)
     Button mBtnUpdateQuestions;
     @BindView(R.id.sv_log)
     TextView mSvLog;
+    @BindView(R.id.btn_upload_audio)
+    Button mBtnUploadAudio;
+    @BindView(R.id.btn_upload_word_image)
+    Button mBtnUploadWordImage;
+    @BindView(R.id.btn_show_word_info)
+    Button mBtnShowWordInfo;
     private List<Word> mWordList;
+    private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
+            + File.separator + "wordManagement" + File.separator;
+    String path = BASE_PATH + "word_list_test.txt";
+    private OSS mOss;
+    private OssTokenInfo mOssTokenInfo;
+    private StringBuilder logStringBuilder = new StringBuilder();
+    private SimpleDateFormat mSdf = new SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,97 +94,123 @@ public class MainActivity extends AppCompatActivity {
                 , PERMISSION);
     }
 
-    @OnClick({R.id.btn_load_file, R.id.btn_update_word, R.id.btn_update_questions})
-    public void onViewClicked(View view) {
-        switch (view.getId()) {
-            case R.id.btn_load_file:
-//                String path = Environment.getExternalStorageDirectory().getPath()
-//                        + File.separator + "wordManagement" + File.separator + "two_up.txt";
-                String path = Environment.getExternalStorageDirectory().getPath()
-                        + File.separator + "wordManagement" + File.separator + "word_list_test.txt";
-                mWordList = loadFile(path);
-                mBtnLoadFile.setEnabled(false);
-                break;
-            case R.id.btn_update_word:
+    @Nullable
+    private void updateFile(String path) {
+        if (mOssTokenInfo == null || mOss == null) {
+            showDialog("mOssTokenInfo or mOss不存在");
+            return;
+        }
 
-                if (mWordList != null && !mWordList.isEmpty()) {
-                    //flatMap 无序
-                    //concatMap 有序
+        File file = new File(path);
+        if (!file.exists()) {
+            showDialog("file 不存在 name=" + file.getName() + "\npath=" + file.getPath());
+            return;
+        }
 
-                    Observable.fromIterable(mWordList)
-                            .concatMap(new Function<Word, ObservableSource<ResponseBody>>() {
+        if (mWordList == null || mWordList.isEmpty()) {
+            showDialog("请先解析文档，获取wordList");
+            return;
+        }
 
-                                @Override
-                                public ObservableSource<ResponseBody> apply(Word word) throws Exception {
-                                    Log.d(TAG, "apply: word=" + word.getEnglishSpell());
-                                    return ApiClient.getInstance()
-                                            .createWord(word);
-                                }
-                            })
-                            .subscribeOn(Schedulers.newThread())
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe(new Observer<ResponseBody>() {
-                                @Override
-                                public void onSubscribe(Disposable d) {
+//        UUID uuid = UUID.randomUUID();
+        String objectKey = null;
+        if (file.getName().endsWith(".mp3")) {
+            objectKey = "courseware/audio/" + file.getName();
+        } else {
+            objectKey = "courseware/image/" + file.getName();
+        }
+        Log.d(TAG, "updateFile: objectKey=" + objectKey);
 
-                                }
+        PutObjectRequest putObjectRequest = new PutObjectRequest(mOssTokenInfo.getBucket()
+                , objectKey, path);
 
-                                @Override
-                                public void onNext(ResponseBody responseBody) {
+        mOss.asyncPutObject(putObjectRequest, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+            @Override
+            public void onSuccess(PutObjectRequest request, PutObjectResult result) {
+                String objectKey = request.getObjectKey();
+                String url = mOssTokenInfo.getEndpoint() + "/" + objectKey;
+                String fileName = new File(objectKey).getName();
+                String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
+                fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1
+                if ("mp3".equals(suffix)) {//mp3
+                    if (mWordList != null) {
+                        boolean find = false;
+                        for (Word word : mWordList) {
+                            if (TextUtils.equals(word.getEnglishSpell(), fileName)) {
+                                find = true;
+                                word.setEnglishPronunciation(url);
+                                break;
+                            } else if (TextUtils.equals(word.getEnglishSpell() + 1, fileName)) {
+                                find = true;
+                                word.setExampleSentenceAudio(url);
+                                break;
+                            }
+                        }
+                        if (find) {
+                            Log.d(TAG, "updateFile--onSuccess-find: objectKey=" + objectKey);
+                        } else {
+                            Log.e(TAG, "updateFile--onSuccess-word-not-find: objectKey=" + objectKey);
+                        }
 
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-
-                                }
-
-                                @Override
-                                public void onComplete() {
-
-                                }
-                            });
-                } else {
-                    mBtnLoadFile.setEnabled(true);
-                    Toast.makeText(this, "单词列表为空！", Toast.LENGTH_SHORT).show();
+                    }
+                } else {//image
+                    if (mWordList != null) {
+                        for (Word word : mWordList) {
+//                            word.setImage(url);
+//                            word.setRectangleImage(url);
+                        }
+                    }
                 }
-                break;
-            case R.id.btn_update_questions:
-                listAll();
-                break;
+
+//                request.get
+//                 onSuccess: courseware/audio/cow.mp3,fileName=cow
+//                Log.d(TAG, "onSuccess: " + request.getObjectKey() + ",fileName=" + fileName);
+//                 onSuccess: getETag=FA86230E1A440867E04CD4E84FBDDEF5
+//                 onSuccess: getRequestId=5B29BDC1ACB2DB2870772C99
+//                Log.d(TAG, "onSuccess: getETag=" + result.getETag());
+//                Log.d(TAG, "onSuccess: getRequestId=" + result.getRequestId());
+//                Log.d(TAG, "onSuccess: request=" + request);
+//                Log.d(TAG, "onSuccess: result=" + result);
+//                Set<Map.Entry<String, String>> entries = request.getCallbackParam().entrySet();
+//                for (Map.Entry<String, String> entry : entries) {
+//                    Log.d(TAG, "onSuccess callback: getKey=" + entry.getKey() + ",getValue=" + entry.getValue());
+//                }
+//                Map<String, String> responseHeader = result.getResponseHeader();
+//
+//                Set<Map.Entry<String, String>> entries1 = responseHeader.entrySet();
+//                for (Map.Entry<String, String> stringEntry : entries1) {
+//                    Log.d(TAG, "onSuccess header: getKey=" + stringEntry.getKey() + ",getValue=" + stringEntry.getValue());
+//
+//                }
+            }
+
+            @Override
+            public void onFailure(PutObjectRequest request, ClientException clientException, ServiceException serviceException) {
+                Log.d(TAG, "onFailure: " + request.getObjectKey());
+            }
+        });
+
+        try {
+            mOss.putObject(putObjectRequest);
+        } catch (ClientException e) {
+            e.printStackTrace();
+        } catch (ServiceException e) {
+            e.printStackTrace();
         }
     }
 
-    private void createWord() {
-        Word word = new Word();
-        word.setChineseSpell("Test1");
-        word.setEnglishSpell("Test1");
-        word.setMeaning("Test1 释义");
-        word.setExampleSentence("Test1 sentence");
-
-        ApiClient.getInstance()
-                .createWord(word)
-                .subscribe(new Observer<ResponseBody>() {
+    public void showDialog(String msg) {
+        new AlertDialog.Builder(this)
+                .setMessage(msg)
+                .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
                     @Override
-                    public void onSubscribe(Disposable d) {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
 
                     }
-
-                    @Override
-                    public void onNext(ResponseBody responseBody) {
-
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-
-                    }
-
-                    @Override
-                    public void onComplete() {
-
-                    }
-                });
+                })
+                .create()
+                .show();
     }
 
     private void listAll() {
@@ -184,6 +241,27 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "onComplete: ");
                     }
                 });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.option_reset:
+                mBtnLoadFile.setEnabled(true);
+                mBtnUploadAudio.setEnabled(true);
+                mBtnUploadWordImage.setEnabled(true);
+                mBtnUpdateWord.setEnabled(true);
+                mBtnUpdateQuestions.setEnabled(true);
+                Toast.makeText(this, "已重置！", Toast.LENGTH_SHORT).show();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private List<Word> loadFile(String path) {
@@ -377,5 +455,133 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return wordList;
+    }
+
+    @OnClick({R.id.btn_load_file, R.id.btn_upload_audio, R.id.btn_upload_word_image, R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.btn_load_file:
+                mWordList = loadFile(path);
+                mBtnLoadFile.setEnabled(false);
+                break;
+            case R.id.btn_upload_audio:
+                //                单词小超人 一下 音频32-87
+                String testMp3 = BASE_PATH + "单词小超人 一下 音频32-87/32 cow/cow.mp3";
+                MyApp app = (MyApp) getApplication();
+                mOssTokenInfo = app.getOssTokenInfo();
+                mOss = app.getOss();
+                updateFile(testMp3);
+
+//                listAll();
+                break;
+            case R.id.btn_upload_word_image:
+                break;
+            case R.id.btn_upload_word:
+                if (check()) {
+                    uploadWordList();
+                } else {
+                    mBtnLoadFile.setEnabled(true);
+                }
+                break;
+            case R.id.btn_upload_questions:
+                break;
+            case R.id.btn_show_word_info:
+                if (check()) {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (int i = 0; i < mWordList.size(); i++) {
+                        Word word = mWordList.get(i);
+                        word.id = i;
+                        stringBuilder.append(word.toString());
+                        stringBuilder.append("\n\n");
+                    }
+                    WordListInfoActivity.start(this, stringBuilder.toString());
+                }
+                break;
+        }
+    }
+
+    private void uploadWordList() {
+        mBtnUpdateWord.setEnabled(false);
+        logStringBuilder.setLength(0);
+        Observable.fromIterable(mWordList)
+                .concatMap(new Function<Word, ObservableSource<ResultBeanInfo<Word>>>() {
+
+                    @Override
+                    public ObservableSource<ResultBeanInfo<Word>> apply(Word word) throws Exception {
+                        Log.d(TAG, "apply: word=" + word.getEnglishSpell());
+                        logStringBuilder.append("----------------------------");
+                        logStringBuilder.append("\n");
+                        logStringBuilder.append(mSdf.format(new Date()));
+                        logStringBuilder.append(" uploadWord apply=");
+                        logStringBuilder.append(word.getEnglishSpell());
+                        //RNewThreadScheduler-2
+//                        logStringBuilder.append(" ");
+//                        logStringBuilder.append(Thread.currentThread().getName());
+                        logStringBuilder.append("\n");
+                        return ApiClient.getInstance()
+                                .createWord(word);
+                    }
+                })
+                .delay(1, TimeUnit.SECONDS)
+                .subscribeOn(Schedulers.newThread())
+//                .subscribeOn(Schedulers.single())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<ResultBeanInfo<Word>>() {
+
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResultBeanInfo<Word> wordResultBeanInfo) {
+                        Word word = wordResultBeanInfo.getData();
+                        logStringBuilder.append(mSdf.format(new Date()));
+                        logStringBuilder.append(" uploadWord onNext=");
+                        logStringBuilder.append(word.getEnglishSpell());
+                        logStringBuilder.append("\n");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        logStringBuilder.append(e.getMessage());
+                        logStringBuilder.append(" uploadWord apply=");
+                        logStringBuilder.append("\n");
+                        mBtnUpdateWord.setEnabled(true);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        showDialog("上传完成！");
+                        mSvLog.setText(logStringBuilder.toString());
+                        mBtnUpdateWord.setEnabled(true);
+                    }
+
+
+                });
+    }
+
+    boolean check() {
+        if (mWordList == null || mWordList.isEmpty()) {
+            showDialog("请先解析文件，获取WordList");
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setMessage("确定返回？")
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        finish();
+                    }
+                })
+                .create()
+                .show();
+//        super.onBackPressed();
     }
 }

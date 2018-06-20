@@ -1,5 +1,7 @@
 package com.example.yangj.wordmangementandroid.retrofit;
 
+import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
+import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 
 import io.reactivex.Observable;
@@ -18,6 +20,9 @@ public interface ApiQiBu {
     Observable<ResponseBody> listAll();
 
     @POST("/word")
-    Observable<ResponseBody> create(@Body Word word);
+    Observable<ResultBeanInfo<Word>> create(@Body Word word);
+
+    @GET("/oss/getSTSToken")
+    Observable<ResultBeanInfo<OssTokenInfo>> getSTSToken();
 
 }

@@ -13,6 +13,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            debuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             buildConfigField "String", "IP_ADDRESS", ip_address_word_release
 //
@@ -50,4 +51,8 @@ dependencies {
     implementation 'com.alibaba:fastjson:1.1.59.android'
     implementation group: 'commons-io', name: 'commons-io', version: "${rootProject.ext.commonIoVersion}"
 
+//    com.aliyun.dpa:oss-android-sdk
+//    compile 'com.aliyun.dpa:oss-android-sdk:2.0.1.1'
+//    aliyun-oss-sdk-android-2.0.1.1
+    compile 'com.aliyun.dpa:oss-android-sdk:+'
 }
