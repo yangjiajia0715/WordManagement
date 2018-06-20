@@ -9,31 +9,31 @@ import java.util.List;
  */
 
 public class ResultListInfo<T> implements Serializable {
-    private List<T> datas;
-    private int flag;
-    private String msg;
+    private List<T> data;
+    private int code;
+    private String message;
 
-    public List<T> getDatas() {
-        return datas;
+    public List<T> getData() {
+        return data;
     }
 
-    public void setDatas(List<T> datas) {
-        this.datas = datas;
+    public void setData(List<T> data) {
+        this.data = data;
     }
 
-    public int getFlag() {
-        return flag;
+    public int getCode() {
+        return code;
     }
 
-    public void setFlag(int flag) {
-        this.flag = flag;
+    public void setCode(int code) {
+        this.code = code;
     }
 
-    public String getMsg() {
-        return msg;
+    public String getMessage() {
+        return message;
     }
 
-    public void setMsg(String msg) {
-        this.msg = msg;
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

@@ -26,8 +26,11 @@ import com.alibaba.sdk.android.oss.model.PutObjectResult;
 import com.example.yangj.wordmangementandroid.MyApp;
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
+import com.example.yangj.wordmangementandroid.common.Question;
 import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
+import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
+import com.example.yangj.wordmangementandroid.common.WordLoad;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
 import java.io.BufferedReader;
@@ -51,6 +54,7 @@ import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 
@@ -74,11 +78,17 @@ public class MainActivity extends AppCompatActivity {
     private List<Word> mWordList;
     private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
             + File.separator + "wordManagement" + File.separator;
-    String path = BASE_PATH + "word_list_test.txt";
+    //    String wordPath = BASE_PATH + "word_list_test.txt";
+    String wordPath = BASE_PATH + "一下1-80.txt";
     private OSS mOss;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
+    private List<WordLoad> mWordLoads = new ArrayList<>();
     private SimpleDateFormat mSdf = new SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault());
+    private int updateWordSkipNumber = 0;
+    private int updateWordTotalNumber = 0;
+    private int updateWordFailedNumber = 0;
+    private List<Word> mListAllWords;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         requestPermission();
+        listAll();
     }
 
     public void requestPermission() {
@@ -103,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
         File file = new File(path);
         if (!file.exists()) {
-            showDialog("file 不存在 name=" + file.getName() + "\npath=" + file.getPath());
+            showDialog("file 不存在 name=" + file.getName() + "\nwordPath=" + file.getPath());
             return;
         }
 
@@ -128,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(PutObjectRequest request, PutObjectResult result) {
                 String objectKey = request.getObjectKey();
-                String url = mOssTokenInfo.getEndpoint() + "/" + objectKey;
+                String url = mOssTokenInfo.getCdnEndpoint() + "/" + objectKey;
                 String fileName = new File(objectKey).getName();
                 String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
                 fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1
@@ -149,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
                         if (find) {
                             Log.d(TAG, "updateFile--onSuccess-find: objectKey=" + objectKey);
                         } else {
-                            Log.e(TAG, "updateFile--onSuccess-word-not-find: objectKey=" + objectKey);
+                            Log.e(TAG, "updateFile--onSuccess-mWordList-not-find: objectKey=" + objectKey);
                         }
 
                     }
@@ -216,29 +227,26 @@ public class MainActivity extends AppCompatActivity {
     private void listAll() {
         ApiClient.getInstance()
                 .listAll()
-                .subscribe(new Observer<ResponseBody>() {
+                .subscribe(new Observer<ResultListInfo<Word>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        Log.d(TAG, "onSubscribe: ");
+
                     }
 
                     @Override
-                    public void onNext(ResponseBody responseBody) {
-                        try {
-                            Log.d(TAG, "onNext: responseBody=" + responseBody.string());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                    public void onNext(ResultListInfo<Word> wordResultListInfo) {
+                        mListAllWords = wordResultListInfo.getData();
+                        showDialog("listAll size=" + mListAllWords.size());
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        Log.d(TAG, "onError: e=" + e.getMessage());
+                        showDialog("listAll onError=" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        Log.d(TAG, "onComplete: ");
+
                     }
                 });
     }
@@ -265,9 +273,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private List<Word> loadFile(String path) {
+        mWordLoads.clear();
         List<Word> wordList = new ArrayList<>();
         File file = new File(path);
-        Log.d(TAG, "loadFile: path=" + path);
+        Log.d(TAG, "loadFile: wordPath=" + path);
         if (!file.exists()) {
             Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
             return wordList;
@@ -286,81 +295,115 @@ public class MainActivity extends AppCompatActivity {
 
                 if (!TextUtils.isEmpty(line)) {
                     String twoChar = line.substring(0, 2);
+                    //第一行 开始
                     if (TextUtils.isDigitsOnly(twoChar)) {
+                        Word word = new Word();
+                        WordLoad wordLoad = new WordLoad();
+                        //空行 为分隔符
+                        if (lines.size() == 6) {
+                            for (int i = 0; i < lines.size(); i++) {
+                                String lineStr = lines.get(i).trim();//trim
+                                switch (i) {
+                                    case 0:
+                                        word.id = Integer.parseInt(lineStr.substring(0, 2));
+                                        int index0 = lineStr.lastIndexOf(" ");
+                                        Log.d(TAG, "loadFile: lineStr=" + lineStr.length() + "--" + lineStr);
+                                        Log.d(TAG, "loadFile: lineStr index0=" + index0);
+                                        word.setEnglishSpell(lineStr.substring(2, index0).trim());//trim
+                                        word.setMeaning(lineStr.substring(index0, lineStr.length()).trim());//trim
+                                        word.setChineseSpell(word.getMeaning());
+
+                                        stringBuilder.append("\n");
+                                        stringBuilder.append(word.id);
+                                        stringBuilder.append(" ");
+                                        stringBuilder.append(word.getEnglishSpell());
+                                        stringBuilder.append("---");
+                                        stringBuilder.append(word.getChineseSpell());
+                                        stringBuilder.append("\n");
+                                        break;
+                                    case 1://例句0
+                                        int index1 = lineStr.lastIndexOf("例句0：");
+                                        if (index1 >= 0) {
+                                            word.setExampleSentence(lineStr.substring("例句0：".length(), lineStr.length()).trim());
+                                            stringBuilder.append(word.getExampleSentence());
+                                            stringBuilder.append("\n");
+                                        } else {
+                                            word.setExampleSentence(lineStr.trim());
+                                            stringBuilder.append(word.getExampleSentence());
+                                            stringBuilder.append("\n");
+                                        }
+                                        break;
+                                    case 2://中文干扰项1
+                                        String errorMeaning = lineStr.substring("中文干扰项1：".length(), lineStr.length());
+                                        wordLoad.wordChineseWrong = errorMeaning;
+//                                        stringBuilder.append("errorMeaning=");
+                                        stringBuilder.append(errorMeaning);
+                                        stringBuilder.append("\n");
+                                        break;
+                                    case 3://英文干扰项3
+                                        String engWrong = lineStr.substring("英文干扰项3：".length(), lineStr.length()).trim();
+                                        wordLoad.wordEnglishWrong = engWrong;
+                                        stringBuilder.append(engWrong);
+                                        stringBuilder.append("\n");
+                                        break;
+                                    case 4://分割正确项2
+                                        int index3 = lineStr.lastIndexOf("分割正确项2：");
+                                        if (index3 >= 0) {
+                                            String lineRight = lineStr.substring("分割正确项2：".length(), lineStr.length()).trim();
+                                            wordLoad.rightOptions = lineRight.split(" ");
+                                            stringBuilder.append(lineRight);
+                                            stringBuilder.append("\n");
+                                        }
+                                        break;
+                                    case 5://分割正确项4
+                                        String splitError = lineStr.substring("分割干扰项4：".length(), lineStr.length()).trim();
+                                        String[] split = splitError.split(" ");
+
+                                        List<String> wrongOptions1 = new ArrayList<>();
+                                        List<String> wrongOptions2 = new ArrayList<>();
+
+                                        if (split.length == 4) {
+                                            for (int i1 = 0; i1 < split.length; i1++) {
+                                                if (i1 < 2) {
+                                                    wrongOptions1.add(split[i1]);
+                                                } else {
+                                                    wrongOptions2.add(split[i1]);
+                                                }
+                                            }
+                                        } else if (split.length > 4 && split.length % 2 == 0) {
+//                                        int middle = split.length / 2;
+//
+//                                        for (int j = 0; j < middle; j++) {
+//
+//                                        }
+//                                        for (int j = middle; j < split.length; j++) {
+//
+//                                        }
+                                        }
+
+                                        wordLoad.wrongOption1 = wrongOptions1;
+                                        wordLoad.wrongOption2 = wrongOptions2;
+
+                                        stringBuilder.append(splitError);
+                                        stringBuilder.append("\n");
+                                        break;
+                                }
+                            }
+                            mWordLoads.add(wordLoad);
+                            wordList.add(word);
+                        } else {
+                            Log.e(TAG, "loadFile: error 没有空格 id=" + word.id);
+                            stringBuilder.append("-----error 没有空格------id=");
+                            stringBuilder.append(word.id);
+                            stringBuilder.append("  getEnglishSpell=");
+                            stringBuilder.append(word.getEnglishSpell());
+                            stringBuilder.append("\n");
+                        }
+                        //else
+
                         lines.clear();
                     }
                     lines.add(line);
-                } else {
-                    //空行 为分隔符
-                    if (lines.size() == 6) {
-                        Word word = new Word();
-                        for (int i = 0; i < lines.size(); i++) {
-                            String lineStr = lines.get(i).trim();//trim
-                            switch (i) {
-                                case 0:
-                                    word.id = Integer.parseInt(lineStr.substring(0, 2));
-                                    int index0 = lineStr.lastIndexOf(" ");
-                                    Log.d(TAG, "loadFile: lineStr=" + lineStr.length() + "--" + lineStr);
-                                    Log.d(TAG, "loadFile: lineStr index0=" + index0);
-                                    word.setEnglishSpell(lineStr.substring(2, index0).trim());//trim
-                                    word.setMeaning(lineStr.substring(index0, lineStr.length()).trim());//trim
-                                    word.setChineseSpell(word.getMeaning());
-
-                                    stringBuilder.append(word.id);
-                                    stringBuilder.append(" ");
-                                    stringBuilder.append(word.getEnglishSpell());
-                                    stringBuilder.append("---");
-                                    stringBuilder.append(word.getChineseSpell());
-                                    stringBuilder.append("\n");
-                                    break;
-                                case 1:
-                                    int index1 = lineStr.lastIndexOf("例句0：");
-                                    if (index1 >= 0) {
-                                        word.setExampleSentence(lineStr.substring("例句0：".length(), lineStr.length()));
-
-                                        stringBuilder.append(word.getExampleSentence());
-                                        stringBuilder.append("\n");
-                                    }
-                                    break;
-                                case 2:
-                                    int index2 = lineStr.lastIndexOf("中文干扰项1：");
-                                    if (index2 > 0) {
-                                        String errorMeaning = lineStr.substring("中文干扰项1：".length(), lineStr.length());
-
-                                        stringBuilder.append("errorMeaning=");
-                                        stringBuilder.append(errorMeaning);
-                                        stringBuilder.append("\n");
-                                    }
-                                    break;
-                                case 3:
-                                    int index3 = lineStr.lastIndexOf("分割正确项2：");
-                                    if (index3 >= 0) {
-                                        String lineRight = lineStr.substring("分割正确项2：".length(), lineStr.length());
-                                        String[] splitRight = lineRight.split(" ");
-
-                                        stringBuilder.append(lineRight);
-                                        stringBuilder.append("\n");
-                                    }
-                                    break;
-                                case 4:
-                                    String engWrong = lineStr.substring("英文干扰项3：".length(), lineStr.length());
-                                    stringBuilder.append(engWrong);
-                                    stringBuilder.append("\n");
-                                    break;
-                                case 5:
-                                    String splitError = lineStr.substring("分割干扰项4：".length(), lineStr.length());
-
-                                    stringBuilder.append(splitError);
-                                    stringBuilder.append("\n");
-                                    break;
-                            }
-                        }
-                        wordList.add(word);
-                    } else {
-                        Log.e(TAG, "loadFile: error 没有空格 ");
-                        stringBuilder.append("-----error 没有空格------");
-                        stringBuilder.append("\n");
-                    }
                 }
 
             }
@@ -389,7 +432,7 @@ public class MainActivity extends AppCompatActivity {
                 + File.separator + "wordManagement" + File.separator + "two_up.txt";
         File file = new File(path);
         File fileOutPut = new File(file.getParentFile(), "two_up_output.txt");
-        Log.d(TAG, "loadFile: path=" + path);
+        Log.d(TAG, "loadFile: wordPath=" + path);
         Log.d(TAG, "loadFile: file=" + file);
         if (!file.exists()) {
             Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
@@ -461,32 +504,36 @@ public class MainActivity extends AppCompatActivity {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_load_file:
-                mWordList = loadFile(path);
+                mWordList = loadFile(wordPath);
                 mBtnLoadFile.setEnabled(false);
                 break;
             case R.id.btn_upload_audio:
-                //                单词小超人 一下 音频32-87
-                String testMp3 = BASE_PATH + "单词小超人 一下 音频32-87/32 cow/cow.mp3";
-                MyApp app = (MyApp) getApplication();
-                mOssTokenInfo = app.getOssTokenInfo();
-                mOss = app.getOss();
-                updateFile(testMp3);
-
+//                String audioDir = BASE_PATH + "单词小超人 一下 音频32-87/32 cow/cow.mp3";
+                String audioDir = BASE_PATH + "单词小超人 一下 音频32-87";
+                if (checkWordList()) {
+                    uploadAudios(audioDir);
+                }
 //                listAll();
                 break;
             case R.id.btn_upload_word_image:
                 break;
             case R.id.btn_upload_word:
-                if (check()) {
+                if (mListAllWords == null || mListAllWords.isEmpty()) {
+                    Toast.makeText(this, "No mListAllWords!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (checkWordList()) {
                     uploadWordList();
                 } else {
                     mBtnLoadFile.setEnabled(true);
                 }
                 break;
             case R.id.btn_upload_questions:
+                uploadQustions(null);
                 break;
             case R.id.btn_show_word_info:
-                if (check()) {
+                if (checkWordList()) {
                     StringBuilder stringBuilder = new StringBuilder();
                     for (int i = 0; i < mWordList.size(); i++) {
                         Word word = mWordList.get(i);
@@ -500,10 +547,143 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void uploadAudios(String audioDir) {
+        MyApp app = (MyApp) getApplication();
+        mOssTokenInfo = app.getOssTokenInfo();
+        mOss = app.getOss();
+        File audioFile = new File(audioDir);
+        if (!audioFile.exists() || !audioFile.isDirectory()) {
+            showDialog("音频目录错误！audioDir=" + audioDir);
+            return;
+        }
+        if (mListAllWords == null || mListAllWords.isEmpty()) {
+            Toast.makeText(this, "No mListAllWords!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mBtnUploadAudio.setEnabled(false);
+
+        File[] files = audioFile.listFiles();
+//        File[] temps = new File[3];
+//        temps[0] = files[0];
+//        temps[1] = files[1];
+//        temps[2] = files[2];
+
+        Observable.fromArray(files)
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        return file.listFiles().length > 0;
+                    }
+                })
+                .concatMap(new Function<File, ObservableSource<File>>() {
+                    @Override
+                    public ObservableSource<File> apply(final File file) {
+                        File[] mp3Files = file.listFiles();
+                        return Observable.fromArray(mp3Files);
+                    }
+                })
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        return file.getPath().endsWith("mp3");
+                    }
+                })
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        boolean alreadyExist = false;
+                        for (Word wordItem : mListAllWords) {
+                            String englishPronunciation = wordItem.getEnglishPronunciation();
+                            String sentenceAudio = wordItem.getExampleSentenceAudio();
+                            Log.d(TAG, "uploadAudios--test:englishPronunciation= " + englishPronunciation);
+                            Log.d(TAG, "uploadAudios--test: sentenceAudio="+ sentenceAudio);
+                            String fileName = file.getName();
+                            if (!TextUtils.isEmpty(englishPronunciation) && englishPronunciation.contains(fileName)) {
+                                alreadyExist = true;
+                                break;
+                            }
+                            if (!TextUtils.isEmpty(sentenceAudio) && sentenceAudio.contains(fileName)) {
+                                alreadyExist = true;
+                                break;
+                            }
+                        }
+                        Log.d(TAG, "uploadAudios--test: alreadyExist=" + alreadyExist + ",getName=" + file.getName());
+                        return !alreadyExist;
+                    }
+                })
+                .delay(300, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<File>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(File file) {
+                        Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath());
+//                        Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath() + Thread.currentThread().getName());
+                        updateFile(file.getPath());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "uploadAudios--onError: e=" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        showDialog("音频上传成功！");
+                    }
+                });
+
+//        updateFile(audioDir);
+    }
+
     private void uploadWordList() {
         mBtnUpdateWord.setEnabled(false);
+
         logStringBuilder.setLength(0);
+//        Word word = mWordList.get(0);
+//        mWordList = new ArrayList<>();
+//        mWordList.add(word);
+
+        updateWordTotalNumber = mWordList.size();
+        updateWordSkipNumber = 0;
+        updateWordFailedNumber = 0;
+
         Observable.fromIterable(mWordList)
+                .filter(new Predicate<Word>() {
+                    @Override
+                    public boolean test(Word word) {
+                        boolean complete = checkWordComplete(word);
+                        if (!complete) {
+                            updateWordSkipNumber++;
+                            logStringBuilder.append("====信息不完整，已跳过 id=");
+                            logStringBuilder.append(word.id);
+                            logStringBuilder.append(",word=");
+                            logStringBuilder.append(word.getEnglishSpell());
+                            logStringBuilder.append("\n");
+                        }
+
+                        return complete;
+                    }
+                })
+                .filter(new Predicate<Word>() {
+                    @Override
+                    public boolean test(Word word) {
+                        boolean alreadyExist = false;
+                        for (Word listAllWord : mListAllWords) {
+                            if (TextUtils.equals(word.getEnglishSpell(), listAllWord.getEnglishSpell())) {
+                                alreadyExist = true;
+                                updateWordSkipNumber++;
+                                break;
+                            }
+                        }
+                        return !alreadyExist;
+                    }
+                })
                 .concatMap(new Function<Word, ObservableSource<ResultBeanInfo<Word>>>() {
 
                     @Override
@@ -522,7 +702,7 @@ public class MainActivity extends AppCompatActivity {
                                 .createWord(word);
                     }
                 })
-                .delay(1, TimeUnit.SECONDS)
+                .delay(500, TimeUnit.MILLISECONDS)
                 .subscribeOn(Schedulers.newThread())
 //                .subscribeOn(Schedulers.single())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -544,30 +724,85 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Throwable e) {
+                        logStringBuilder.append(" onError=");
                         logStringBuilder.append(e.getMessage());
-                        logStringBuilder.append(" uploadWord apply=");
                         logStringBuilder.append("\n");
-                        mBtnUpdateWord.setEnabled(true);
+                        updateWordFailedNumber++;
                     }
 
                     @Override
                     public void onComplete() {
-                        showDialog("上传完成！");
+                        showDialog("上传完成！共：" + updateWordTotalNumber +
+                                "\n跳过：" + updateWordSkipNumber +
+                                "\n失败：" + updateWordFailedNumber);
                         mSvLog.setText(logStringBuilder.toString());
-                        mBtnUpdateWord.setEnabled(true);
                     }
 
 
                 });
     }
 
-    boolean check() {
+    /**
+     * 上传问题
+     */
+    private void uploadQustions(List<Question> questions) {
+        if (questions == null || questions.isEmpty()) {
+            showDialog("No questions!");
+            return;
+        }
+
+        Observable.fromIterable(questions)
+                .concatMap(new Function<Question, ObservableSource<ResponseBody>>() {
+                    @Override
+                    public ObservableSource<ResponseBody> apply(Question question) {
+                        return ApiClient.getInstance()
+                                .createQuestion(question);
+                    }
+                })
+                .subscribe(new Observer<ResponseBody>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResponseBody responseBody) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+    }
+
+    boolean checkWordList() {
         if (mWordList == null || mWordList.isEmpty()) {
             showDialog("请先解析文件，获取WordList");
             return false;
         }
         return true;
     }
+
+    boolean checkWordComplete(Word word) {
+        if (word == null) {
+            return false;
+        }
+        if (TextUtils.isEmpty(word.getEnglishSpell())
+                || TextUtils.isEmpty(word.getChineseSpell())
+                || TextUtils.isEmpty(word.getMeaning())
+                || TextUtils.isEmpty(word.getExampleSentence())) {
+            return false;
+        }
+        return true;
+    }
+
 
     @Override
     public void onBackPressed() {

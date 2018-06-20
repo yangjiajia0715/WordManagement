@@ -1,5 +1,7 @@
 package com.example.yangj.wordmangementandroid.common;
 
+import android.text.TextUtils;
+
 import java.io.Serializable;
 
 /**
@@ -132,13 +134,13 @@ public class Word implements Serializable {
         return "id=" + id +
                 "\nenglishSpell='" + englishSpell + '\'' +
                 "\nchineseSpell='" + chineseSpell + '\'' +
-                "\nenglishPronunciation='" + englishPronunciation + '\'' +
+                "\nenglishPronunciation='" + englishPronunciation + '\'' + (TextUtils.isEmpty(englishPronunciation) ? "-------" : "") +
                 "\nchinesePronunciation='" + chinesePronunciation + '\'' +
                 "\nimage='" + image + '\'' +
                 "\nrectangleImage='" + rectangleImage + '\'' +
                 "\nmeaning='" + meaning + '\'' +
                 "\nmeaningAudio='" + meaningAudio + '\'' +
                 "\nexampleSentence='" + exampleSentence + '\'' +
-                "\nexampleSentenceAudio='" + exampleSentenceAudio + '\'';
+                "\nexampleSentenceAudio='" + exampleSentenceAudio + '\'' + (TextUtils.isEmpty(exampleSentenceAudio) ? "-------" : "");
     }
 }
