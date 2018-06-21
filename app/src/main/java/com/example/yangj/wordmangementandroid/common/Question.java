@@ -88,4 +88,15 @@ public class Question implements Serializable {
     public String getUid() {
         return type.name() + ":" + getId();
     }
+
+    @Override
+    public String toString() {
+        return
+                "id=" + id +
+                "\ntype=" + type +
+                "\nwordId=" + wordId +
+                "\ntitle=" + title +
+                "\noptions=" + options +
+                "\nanswersIndex=" + answersIndex;
+    }
 }

@@ -32,6 +32,7 @@ import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.common.WordLoad;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
+import com.example.yangj.wordmangementandroid.util.QuestionType2Chinese;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -75,7 +76,10 @@ public class MainActivity extends AppCompatActivity {
     Button mBtnUploadWordImage;
     @BindView(R.id.btn_show_word_info)
     Button mBtnShowWordInfo;
-    private List<Word> mWordList;
+    //解析文件获取单词列表
+    private List<Word> mWordListFile;
+    //解析文件获取的同时保留练习信息，点击上传练习时再整合成Qustion
+    private List<WordLoad> mWordLoadList = new ArrayList<>();
     private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
             + File.separator + "wordManagement" + File.separator;
     //    String wordPath = BASE_PATH + "word_list_test.txt";
@@ -83,11 +87,18 @@ public class MainActivity extends AppCompatActivity {
     private OSS mOss;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
-    private List<WordLoad> mWordLoads = new ArrayList<>();
     private SimpleDateFormat mSdf = new SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault());
     private int updateWordSkipNumber = 0;
     private int updateWordTotalNumber = 0;
     private int updateWordFailedNumber = 0;
+
+    private int uploadAudioSkipNumber = 0;
+    private int uploadAudioTotalNumber = 0;
+    private int uploadAudioFailedNumber = 0;
+
+    private int uploadQuestionTotalNumber = 0;
+    private int uploadQuestionSkipedNumber = 0;
+
     private List<Word> mListAllWords;
 
     @Override
@@ -118,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if (mWordList == null || mWordList.isEmpty()) {
+        if (mWordListFile == null || mWordListFile.isEmpty()) {
             showDialog("请先解析文档，获取wordList");
             return;
         }
@@ -144,9 +155,9 @@ public class MainActivity extends AppCompatActivity {
                 String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
                 fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1
                 if ("mp3".equals(suffix)) {//mp3
-                    if (mWordList != null) {
+                    if (mWordListFile != null) {
                         boolean find = false;
-                        for (Word word : mWordList) {
+                        for (Word word : mWordListFile) {
                             if (TextUtils.equals(word.getEnglishSpell(), fileName)) {
                                 find = true;
                                 word.setEnglishPronunciation(url);
@@ -160,13 +171,13 @@ public class MainActivity extends AppCompatActivity {
                         if (find) {
                             Log.d(TAG, "updateFile--onSuccess-find: objectKey=" + objectKey);
                         } else {
-                            Log.e(TAG, "updateFile--onSuccess-mWordList-not-find: objectKey=" + objectKey);
+                            Log.e(TAG, "updateFile--onSuccess-mWordListFile-not-find: objectKey=" + objectKey);
                         }
 
                     }
                 } else {//image
-                    if (mWordList != null) {
-                        for (Word word : mWordList) {
+                    if (mWordListFile != null) {
+                        for (Word word : mWordListFile) {
 //                            word.setImage(url);
 //                            word.setRectangleImage(url);
                         }
@@ -268,12 +279,88 @@ public class MainActivity extends AppCompatActivity {
                 mBtnUpdateQuestions.setEnabled(true);
                 Toast.makeText(this, "已重置！", Toast.LENGTH_SHORT).show();
                 return true;
+            case R.id.option_show_wordload:
+                int index = 0;
+                StringBuilder stringBuilder = new StringBuilder();
+                for (WordLoad wordLoad : mWordLoadList) {
+                    stringBuilder.append(index);
+                    stringBuilder.append(" ");
+                    stringBuilder.append(wordLoad.word);
+                    stringBuilder.append("\n");
+                    stringBuilder.append(wordLoad.wordEnglishWrong);
+                    stringBuilder.append("\n");
+                    stringBuilder.append(wordLoad.wordChineseWrong);
+                    stringBuilder.append("\n");
+
+                    for (String rightOption : wordLoad.rightOptions) {
+                        stringBuilder.append(rightOption);
+                        stringBuilder.append("--");
+                    }
+                    stringBuilder.append("\n");
+                    for (String s : wordLoad.wrongOption1) {
+                        stringBuilder.append(s);
+                        stringBuilder.append("--");
+                    }
+                    stringBuilder.append("\n");
+                    for (String s : wordLoad.wrongOption2) {
+                        stringBuilder.append(s);
+                        stringBuilder.append("--");
+                    }
+                    stringBuilder.append("\n");
+                    stringBuilder.append("\n");
+
+                    index++;
+                }
+                WordListInfoActivity.start(this, stringBuilder.toString());
+                return true;
+            case R.id.option_show_questions:
+                StringBuilder strBuilderQ = new StringBuilder();
+                List<Question> qustions = createQustions();
+                if (qustions == null || qustions.isEmpty()) {
+                    Toast.makeText(this, "No qustions!", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+
+                int lastWordId = -1;
+                int indexQ = 0;
+                for (Question qustion : qustions) {
+                    int wordId = qustion.getWordId();
+                    if (lastWordId != -1) {
+                        if (lastWordId != wordId) {
+                            strBuilderQ.append("------------------index=");
+                            strBuilderQ.append(indexQ);
+                            indexQ++;
+                        }
+                        strBuilderQ.append("\n");
+                    }
+                    lastWordId = wordId;
+
+                    strBuilderQ.append(qustion.getWordId());
+                    strBuilderQ.append("\n");
+                    //to chinese
+                    strBuilderQ.append(QuestionType2Chinese.getChinese(qustion.getType()));
+                    strBuilderQ.append("\n");
+                    List<String> options = qustion.getOptions();
+                    for (String option : options) {
+                        strBuilderQ.append(option);
+                        strBuilderQ.append("--");
+                    }
+                    strBuilderQ.append("\n");
+                    List<Integer> answersIndex = qustion.getAnswersIndex();
+                    for (Integer integer : answersIndex) {
+                        strBuilderQ.append(integer);
+                        strBuilderQ.append("--");
+                    }
+                    strBuilderQ.append("\n");
+                }
+                WordListInfoActivity.start(this, strBuilderQ.toString());
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
     private List<Word> loadFile(String path) {
-        mWordLoads.clear();
+        mWordLoadList.clear();
         List<Word> wordList = new ArrayList<>();
         File file = new File(path);
         Log.d(TAG, "loadFile: wordPath=" + path);
@@ -313,6 +400,7 @@ public class MainActivity extends AppCompatActivity {
                                         word.setMeaning(lineStr.substring(index0, lineStr.length()).trim());//trim
                                         word.setChineseSpell(word.getMeaning());
 
+                                        wordLoad.word = word.getEnglishSpell();
                                         stringBuilder.append("\n");
                                         stringBuilder.append(word.id);
                                         stringBuilder.append(" ");
@@ -350,35 +438,36 @@ public class MainActivity extends AppCompatActivity {
                                         int index3 = lineStr.lastIndexOf("分割正确项2：");
                                         if (index3 >= 0) {
                                             String lineRight = lineStr.substring("分割正确项2：".length(), lineStr.length()).trim();
-                                            wordLoad.rightOptions = lineRight.split(" ");
+
+                                            String[] split = lineRight.split(" ");
+                                            List<String> rightOptions = new ArrayList<>();
+                                            for (String s : split) {
+                                                s = s.trim();
+                                                if (!TextUtils.isEmpty(s)) {
+                                                    rightOptions.add(s);
+                                                }
+                                            }
+                                            wordLoad.rightOptions = rightOptions;
                                             stringBuilder.append(lineRight);
                                             stringBuilder.append("\n");
                                         }
                                         break;
-                                    case 5://分割正确项4
+                                    case 5://分割干扰项4
                                         String splitError = lineStr.substring("分割干扰项4：".length(), lineStr.length()).trim();
                                         String[] split = splitError.split(" ");
 
                                         List<String> wrongOptions1 = new ArrayList<>();
                                         List<String> wrongOptions2 = new ArrayList<>();
 
-                                        if (split.length == 4) {
-                                            for (int i1 = 0; i1 < split.length; i1++) {
-                                                if (i1 < 2) {
-                                                    wrongOptions1.add(split[i1]);
+                                        for (String s : split) {
+                                            s = s.trim();
+                                            if (!TextUtils.isEmpty(s.trim())) {
+                                                if (wrongOptions1.size() < 2) {
+                                                    wrongOptions1.add(s);
                                                 } else {
-                                                    wrongOptions2.add(split[i1]);
+                                                    wrongOptions2.add(s);
                                                 }
                                             }
-                                        } else if (split.length > 4 && split.length % 2 == 0) {
-//                                        int middle = split.length / 2;
-//
-//                                        for (int j = 0; j < middle; j++) {
-//
-//                                        }
-//                                        for (int j = middle; j < split.length; j++) {
-//
-//                                        }
                                         }
 
                                         wordLoad.wrongOption1 = wrongOptions1;
@@ -389,7 +478,7 @@ public class MainActivity extends AppCompatActivity {
                                         break;
                                 }
                             }
-                            mWordLoads.add(wordLoad);
+                            mWordLoadList.add(wordLoad);
                             wordList.add(word);
                         } else {
                             Log.e(TAG, "loadFile: error 没有空格 id=" + word.id);
@@ -500,20 +589,19 @@ public class MainActivity extends AppCompatActivity {
         return wordList;
     }
 
-    @OnClick({R.id.btn_load_file, R.id.btn_upload_audio, R.id.btn_upload_word_image, R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
+    @OnClick({R.id.btn_load_file, R.id.btn_upload_audio, R.id.btn_upload_word_image,
+            R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_load_file:
-                mWordList = loadFile(wordPath);
+                mWordListFile = loadFile(wordPath);
                 mBtnLoadFile.setEnabled(false);
                 break;
             case R.id.btn_upload_audio:
-//                String audioDir = BASE_PATH + "单词小超人 一下 音频32-87/32 cow/cow.mp3";
                 String audioDir = BASE_PATH + "单词小超人 一下 音频32-87";
                 if (checkWordList()) {
                     uploadAudios(audioDir);
                 }
-//                listAll();
                 break;
             case R.id.btn_upload_word_image:
                 break;
@@ -530,13 +618,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case R.id.btn_upload_questions:
-                uploadQustions(null);
+                if (checkWordList()) {
+                    List<Question> questionList = createQustions();
+                    uploadQustions(questionList);
+                }
                 break;
             case R.id.btn_show_word_info:
                 if (checkWordList()) {
                     StringBuilder stringBuilder = new StringBuilder();
-                    for (int i = 0; i < mWordList.size(); i++) {
-                        Word word = mWordList.get(i);
+                    for (int i = 0; i < mWordListFile.size(); i++) {
+                        Word word = mWordListFile.get(i);
                         word.id = i;
                         stringBuilder.append(word.toString());
                         stringBuilder.append("\n\n");
@@ -547,7 +638,145 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private List<Question> createQustions() {
+        if (mListAllWords == null || mListAllWords.isEmpty()) {
+            showDialog("No ListAllWords!");
+            return null;
+        }
+
+        List<Question> questionList = new ArrayList<>();
+        for (int i = 0; i < mWordLoadList.size(); i++) {
+            WordLoad wordLoad = mWordLoadList.get(i);
+            for (int j = mListAllWords.size() - 1; j >= 0; j--) {
+                Word wordRelease = mListAllWords.get(j);
+                //每个单词10道题，
+                if (TextUtils.equals(wordLoad.word, wordRelease.getEnglishSpell())) {
+                    //CHOOSE_WORD_BY_LISTEN_SENTENCE：听文选词
+                    //SPELL_WORD_BY_READ_IMAGE 看图拼写
+                    //SPELL_WORD_BY_LISTEN_WORD 听词拼写
+                    //1 2，1 3，1 4，2 3，2 4
+                    Question questionSpellRead = new Question();
+                    questionSpellRead.setType(Question.Type.SPELL_WORD_BY_READ_IMAGE);
+                    questionSpellRead.setWordId(wordRelease.id);
+
+                    List<String> rightOptions = wordLoad.rightOptions;
+                    List<String> wrongOption1 = wordLoad.wrongOption1;
+                    List<String> wrongOption2 = wordLoad.wrongOption2;
+                    if (rightOptions == null || rightOptions.size() != 2) {
+                        break;
+                    }
+                    if (wrongOption1 == null || wrongOption1.size() != 2) {
+                        break;
+                    }
+                    if (wrongOption2 == null || wrongOption2.size() != 2) {
+                        break;
+                    }
+
+                    //看图拼写
+                    List<Integer> answerSpell1 = new ArrayList<>();
+                    List<String> optionsSpell1 = new ArrayList<>();
+                    questionSpell(i, rightOptions, wrongOption1, answerSpell1, optionsSpell1);//
+                    questionSpellRead.setAnswersIndex(answerSpell1);
+                    questionSpellRead.setOptions(optionsSpell1);
+
+                    //听词拼写
+                    Question questionSpellListen = new Question();
+                    questionSpellListen.setType(Question.Type.SPELL_WORD_BY_LISTEN_WORD);
+                    questionSpellListen.setWordId(wordRelease.id);
+                    List<Integer> answerSpell2 = new ArrayList<>();
+                    List<String> optionsSpell2 = new ArrayList<>();
+                    questionSpell(i * 3, rightOptions, wrongOption2, answerSpell2, optionsSpell2);//
+                    questionSpellListen.setAnswersIndex(answerSpell2);
+                    questionSpellListen.setOptions(optionsSpell2);
+
+                    questionList.add(questionSpellRead);
+                    questionList.add(questionSpellListen);
+
+                    break;
+                }
+            }
+        }
+
+        return questionList;
+    }
+
+    private void questionSpell(int i, List<String> rightOptions, List<String> wrongOption, List<Integer> answerIndex1, List<String> options1) {
+        switch (i % 8) {//前五种都是顺序：1 2，1 3，1 4，2 3，2 4
+            case 0://1 2，1 3，1 4，2 3，2 4
+                answerIndex1.add(0);
+                answerIndex1.add(1);
+                options1.add(rightOptions.get(0));
+                options1.add(rightOptions.get(1));
+                options1.add(wrongOption.get(0));
+                options1.add(wrongOption.get(1));
+                break;
+            case 1://1 2，1 3，1 4，2 3，2 4
+                answerIndex1.add(0);
+                answerIndex1.add(2);
+                options1.add(rightOptions.get(0));
+                options1.add(wrongOption.get(0));
+                options1.add(rightOptions.get(1));
+                options1.add(wrongOption.get(1));
+                break;
+            case 2://1 2，1 3，1 4，2 3，2 4
+                answerIndex1.add(0);
+                answerIndex1.add(3);
+                options1.add(rightOptions.get(0));
+                options1.add(wrongOption.get(0));
+                options1.add(wrongOption.get(1));
+                options1.add(rightOptions.get(1));
+                break;
+            case 3://1 2，1 3，1 4，2 3，2 4
+                answerIndex1.add(1);
+                answerIndex1.add(2);
+                options1.add(wrongOption.get(0));
+                options1.add(rightOptions.get(0));
+                options1.add(rightOptions.get(1));
+                options1.add(wrongOption.get(1));
+                break;
+            case 4://1 2，1 3，1 4，2 3，2 4
+                answerIndex1.add(1);
+                answerIndex1.add(3);
+                options1.add(wrongOption.get(0));
+                options1.add(rightOptions.get(0));
+                options1.add(wrongOption.get(1));
+                options1.add(rightOptions.get(1));
+                break;
+            case 5://倒序：2 0-------------0 1 2 3
+                answerIndex1.add(2);
+                answerIndex1.add(0);
+                options1.add(rightOptions.get(1));
+                options1.add(wrongOption.get(0));
+                options1.add(rightOptions.get(0));
+                options1.add(wrongOption.get(1));
+                break;
+            case 6://倒序：2 1-------------0 1 2 3
+                answerIndex1.add(2);
+                answerIndex1.add(1);
+                options1.add(wrongOption.get(1));
+                options1.add(rightOptions.get(1));
+                options1.add(rightOptions.get(0));
+                options1.add(wrongOption.get(0));
+                break;
+            case 7://倒序：3 2-------------0 1 2 3
+                answerIndex1.add(3);
+                answerIndex1.add(2);
+                options1.add(wrongOption.get(1));
+                options1.add(wrongOption.get(0));
+                options1.add(rightOptions.get(1));
+                options1.add(rightOptions.get(0));
+                break;
+            default:
+                break;
+        }
+    }
+
     private void uploadAudios(String audioDir) {
+        if (mListAllWords == null || mListAllWords.isEmpty()) {
+            showDialog("No mListAllWords!");
+            return;
+        }
+
         MyApp app = (MyApp) getApplication();
         mOssTokenInfo = app.getOssTokenInfo();
         mOss = app.getOss();
@@ -556,19 +785,32 @@ public class MainActivity extends AppCompatActivity {
             showDialog("音频目录错误！audioDir=" + audioDir);
             return;
         }
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
-            Toast.makeText(this, "No mListAllWords!", Toast.LENGTH_SHORT).show();
+
+        uploadAudioTotalNumber = 0;
+        uploadAudioFailedNumber = 0;
+        uploadAudioSkipNumber = 0;
+        File[] files = audioFile.listFiles();
+
+        //校验是否是目录
+        boolean isRightDir = true;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                File[] files1 = file.listFiles();
+                if (files1.length == 0) {
+                    Log.e(TAG, "uploadAudios: 空目录：" + file.getName());
+                }
+            } else {
+                isRightDir = false;
+                break;
+            }
+        }
+
+        if (!isRightDir) {
+            showDialog("音频目录错误！audioDir=" + audioDir);
             return;
         }
 
         mBtnUploadAudio.setEnabled(false);
-
-        File[] files = audioFile.listFiles();
-//        File[] temps = new File[3];
-//        temps[0] = files[0];
-//        temps[1] = files[1];
-//        temps[2] = files[2];
-
         Observable.fromArray(files)
                 .filter(new Predicate<File>() {
                     @Override
@@ -592,12 +834,13 @@ public class MainActivity extends AppCompatActivity {
                 .filter(new Predicate<File>() {
                     @Override
                     public boolean test(File file) {
+                        uploadAudioTotalNumber++;
                         boolean alreadyExist = false;
                         for (Word wordItem : mListAllWords) {
                             String englishPronunciation = wordItem.getEnglishPronunciation();
                             String sentenceAudio = wordItem.getExampleSentenceAudio();
                             Log.d(TAG, "uploadAudios--test:englishPronunciation= " + englishPronunciation);
-                            Log.d(TAG, "uploadAudios--test: sentenceAudio="+ sentenceAudio);
+                            Log.d(TAG, "uploadAudios--test: sentenceAudio=" + sentenceAudio);
                             String fileName = file.getName();
                             if (!TextUtils.isEmpty(englishPronunciation) && englishPronunciation.contains(fileName)) {
                                 alreadyExist = true;
@@ -607,6 +850,9 @@ public class MainActivity extends AppCompatActivity {
                                 alreadyExist = true;
                                 break;
                             }
+                        }
+                        if (alreadyExist) {
+                            uploadAudioSkipNumber++;
                         }
                         Log.d(TAG, "uploadAudios--test: alreadyExist=" + alreadyExist + ",getName=" + file.getName());
                         return !alreadyExist;
@@ -630,11 +876,15 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onError(Throwable e) {
                         Log.d(TAG, "uploadAudios--onError: e=" + e.getMessage());
+                        uploadAudioFailedNumber++;
                     }
 
                     @Override
                     public void onComplete() {
-                        showDialog("音频上传成功！");
+                        showDialog("音频上传成功！"
+                                + "\n共：" + uploadAudioTotalNumber
+                                + "\n跳过：" + uploadAudioSkipNumber
+                                + "\n失败：" + uploadAudioFailedNumber);
                     }
                 });
 
@@ -645,15 +895,15 @@ public class MainActivity extends AppCompatActivity {
         mBtnUpdateWord.setEnabled(false);
 
         logStringBuilder.setLength(0);
-//        Word word = mWordList.get(0);
-//        mWordList = new ArrayList<>();
-//        mWordList.add(word);
+//        Word word = mWordListFile.get(0);
+//        mWordListFile = new ArrayList<>();
+//        mWordListFile.add(word);
 
-        updateWordTotalNumber = mWordList.size();
+        updateWordTotalNumber = mWordListFile.size();
         updateWordSkipNumber = 0;
         updateWordFailedNumber = 0;
 
-        Observable.fromIterable(mWordList)
+        Observable.fromIterable(mWordListFile)
                 .filter(new Predicate<Word>() {
                     @Override
                     public boolean test(Word word) {
@@ -702,7 +952,7 @@ public class MainActivity extends AppCompatActivity {
                                 .createWord(word);
                     }
                 })
-                .delay(500, TimeUnit.MILLISECONDS)
+                .delay(300, TimeUnit.MILLISECONDS)
                 .subscribeOn(Schedulers.newThread())
 //                .subscribeOn(Schedulers.single())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -732,12 +982,12 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onComplete() {
-                        showDialog("上传完成！共：" + updateWordTotalNumber +
+                        showDialog("上传完成！" +
+                                "\n共：" + updateWordTotalNumber +
                                 "\n跳过：" + updateWordSkipNumber +
                                 "\n失败：" + updateWordFailedNumber);
                         mSvLog.setText(logStringBuilder.toString());
                     }
-
 
                 });
     }
@@ -746,11 +996,17 @@ public class MainActivity extends AppCompatActivity {
      * 上传问题
      */
     private void uploadQustions(List<Question> questions) {
+
         if (questions == null || questions.isEmpty()) {
             showDialog("No questions!");
             return;
         }
 
+//        Question question = questions.get(questions.size() - 1);
+//        questions = new ArrayList<>();
+//        questions.add(question);
+        uploadQuestionTotalNumber = questions.size();
+        uploadQuestionSkipedNumber = 0;
         Observable.fromIterable(questions)
                 .concatMap(new Function<Question, ObservableSource<ResponseBody>>() {
                     @Override
@@ -759,6 +1015,9 @@ public class MainActivity extends AppCompatActivity {
                                 .createQuestion(question);
                     }
                 })
+                .delay(100, TimeUnit.MILLISECONDS)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ResponseBody>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -777,13 +1036,15 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onComplete() {
-
+                        showDialog("上传练习成功！"
+                                + "\n共：" + uploadQuestionTotalNumber
+                                + "\n跳过：" + uploadQuestionSkipedNumber);
                     }
                 });
     }
 
     boolean checkWordList() {
-        if (mWordList == null || mWordList.isEmpty()) {
+        if (mWordListFile == null || mWordListFile.isEmpty()) {
             showDialog("请先解析文件，获取WordList");
             return false;
         }

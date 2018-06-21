@@ -4,7 +4,19 @@
 
     <item
         android:id="@+id/option_reset"
-        android:icon="@drawable/ic_launcher_background"
+        android:icon="@drawable/reset"
         android:title="重置"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/option_show_wordload"
+        android:icon="@drawable/homework"
+        android:title="题型"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/option_show_questions"
+        android:icon="@drawable/good"
+        android:title="查看生成题"
         app:showAsAction="always" />
 </menu>

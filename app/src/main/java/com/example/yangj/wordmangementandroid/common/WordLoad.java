@@ -17,7 +17,8 @@ public class WordLoad {
      */
     public String wordChineseWrong;
 
-    public String[] rightOptions;
+    public List<String> rightOptions;
     public List<String> wrongOption1;
     public List<String> wrongOption2;
+    ;
 }
