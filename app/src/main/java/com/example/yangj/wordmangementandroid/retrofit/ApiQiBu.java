@@ -34,6 +34,9 @@ public interface ApiQiBu {
     @POST("/question")
     Observable<ResultBeanInfo<Question>> createQuestion(@Body Question question);
 
+    @PUT("/question")
+    Observable<ResponseBody> updateQuestion(@Body Question question);
+
     @GET("/oss/getSTSToken")
     Observable<ResultBeanInfo<OssTokenInfo>> getSTSToken();
 

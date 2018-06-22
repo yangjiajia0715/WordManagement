@@ -30,7 +30,7 @@ public class HomeActiivity extends AppCompatActivity {
         ButterKnife.bind(this);
     }
 
-    @OnClick({R.id.btn_word, R.id.btn_question_check, R.id.btn_upload_question})
+    @OnClick({R.id.btn_word, R.id.btn_question_check, R.id.btn_upload_question, R.id.btn_update_word})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_word:
@@ -40,6 +40,9 @@ public class HomeActiivity extends AppCompatActivity {
                 QustionCheckActivity.start(this);
                 break;
             case R.id.btn_upload_question:
+//                UpdateWordActivity.start(this);
+                break;
+            case R.id.btn_update_word:
                 UpdateWordActivity.start(this);
                 break;
         }

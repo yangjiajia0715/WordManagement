@@ -4,12 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.Question;
@@ -18,27 +15,33 @@ import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.Observable;
 import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.observables.GroupedObservable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * 练习检查
  * Created by yangjiajia on 2018/6/21.
  */
-public class QustionCheckActivity extends AppCompatActivity {
+public class QustionCheckActivity extends BaseActivity {
     private static final String TAG = "QustionCheckActivity";
     @BindView(R.id.btn_begin_check)
     Button mBtnBeginCheck;
     @BindView(R.id.tv_check_question_result)
     TextView mTvCheckQuestionResult;
     private List<Question> mQuestionListRelease;
+    private StringBuilder mStringBuilder = new StringBuilder();
+    private int mWordId1Count;
+    List<GroupedObservable<Integer, Question>> groups = new ArrayList<>();
 
     public static void start(Context context) {
         Intent starter = new Intent(context, QustionCheckActivity.class);
@@ -54,6 +57,7 @@ public class QustionCheckActivity extends AppCompatActivity {
     }
 
     private void listAllQuestions() {
+        showDialog();
         ApiClient.getInstance()
                 .listAllQuestions()
                 .subscribe(new Observer<ResultListInfo<Question>>() {
@@ -70,13 +74,15 @@ public class QustionCheckActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Throwable e) {
+                        hideDialog();
                         Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
+                        hideDialog();
+                        mTvCheckQuestionResult.setText("共：" + mQuestionListRelease.size());
                         Log.d(TAG, "listAllQuestions--onComplete");
-                        Toast.makeText(QustionCheckActivity.this, "onComplete", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -86,69 +92,119 @@ public class QustionCheckActivity extends AppCompatActivity {
         if (mQuestionListRelease == null) {
             return;
         }
+        groups.clear();
+        showDialog();
 
-//        Observable.fromIterable(mQuestionListRelease)
-//                .groupBy(new Function<Question, Integer>() {
-//                    @Override
-//                    public Integer apply(Question question) throws Exception {
-//                        return question.getWordId();
-//                    }
-//                })
-//                .subscribe(new Observer<GroupedObservable<Integer, Question>>() {
-//                    @Override
-//                    public void onSubscribe(Disposable d) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onNext(GroupedObservable<Integer, Question> integerQuestionGroupedObservable) {
-//                    }
-//
-//                    @Override
-//                    public void onError(Throwable e) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onComplete() {
-//
-//                    }
-//                });
+        Observable.fromIterable(mQuestionListRelease)
+                .groupBy(new Function<Question, Integer>() {
+                    @Override
+                    public Integer apply(Question question) {
+                        Log.d(TAG, "begin check apply: getWordId=" + question.getWordId());
+                        return question.getWordId();
+                    }
+                })
+                .subscribe(new Observer<GroupedObservable<Integer, Question>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
 
-        StringBuilder stringBuilder = new StringBuilder();
-        List<Question> questionList = new ArrayList<>();
-        //SparseArray !!!
-//        HashMap<Integer, String> hashMap = new HashMap<>();
-        TreeMap<Integer, String> treeMap = new TreeMap<>();
-        for (Question question : mQuestionListRelease) {
-            String type = treeMap.get(question.getWordId());
-            if (TextUtils.isEmpty(type)) {
-                type = question.getType().toString();
-            }else {
-                type += ","+question.getType().toString();
-            }
-            treeMap.put(question.getWordId(), type);
+                    }
+
+                    @Override
+                    public void onNext(GroupedObservable<Integer, Question> groupedObservable) {
+                        groups.add(groupedObservable);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        hideDialog();
+
+                        listGroups();
+                    }
+                });
+    }
+
+    private void listGroups() {
+        Log.d(TAG, "listGroups--size: " + groups.size());
+
+        Observable.interval(10, TimeUnit.MILLISECONDS)
+                .map(new Function<Long, GroupedObservable<Integer, Question>>() {
+                    @Override
+                    public GroupedObservable<Integer, Question> apply(Long aLong) {
+                        Log.d(TAG, "listGroups--aLong: " + aLong);
+                        return groups.get(aLong.intValue());
+                    }
+                })
+                .take(groups.size())
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<GroupedObservable<Integer, Question>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(GroupedObservable<Integer, Question> groupedObservable) {
+                        groupedObservable.subscribe(new QuestionGroupObserver<>());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        mTvCheckQuestionResult.setText(mStringBuilder.toString());
+                    }
+                });
+    }
+
+    class QuestionGroupObserver<T> implements Observer<T> {
+        List<T> mQuestions = new ArrayList<>();
+
+        @Override
+        public void onSubscribe(Disposable d) {
+
         }
 
-        Set<Map.Entry<Integer, String>> entrySet = treeMap.entrySet();
-        for (Map.Entry<Integer, String> entry : entrySet) {
-            Integer wordId = entry.getKey();
-            String types = entry.getValue();
-            int size = types.split(",").length;
-            stringBuilder.append(" 单词：wordId=");
-            stringBuilder.append(wordId);
-            if (size > 10) {
-                stringBuilder.append("多余10个单词---------------");
-                stringBuilder.append("\n\n");
-            } else if (size == 10) {
-
-            } else {
-                stringBuilder.append(" 缺少");
-                stringBuilder.append(10 - size);
-                stringBuilder.append("种类型");
-                stringBuilder.append("\n\n");
-            }
+        @Override
+        public void onNext(T t) {
+            Question question = (Question) t;
+            mQuestions.add(t);
+            Log.d(TAG, "listGroups--onNext: " + question.getWordId());
+            mStringBuilder.append(question.getWordId());
+            mStringBuilder.append(" ");
+            mStringBuilder.append(question.getType());
+            mStringBuilder.append("\n");
         }
-        mTvCheckQuestionResult.setText(stringBuilder.toString());
+
+        @Override
+        public void onError(Throwable e) {
+
+        }
+
+        @Override
+        public void onComplete() {
+            Log.d(TAG, "listGroups--onNext: " + mQuestions.size());
+
+            if (mQuestions.size() != 10) {
+                Question question = (Question) mQuestions.get(0);
+                mStringBuilder.append(question.getWordId());
+                mStringBuilder.append(" ");
+                mStringBuilder.append(question.getType());
+                mStringBuilder.append("\n");
+                mStringBuilder.append("练习题：");
+                mStringBuilder.append(mQuestions.size());
+                mStringBuilder.append("--------------");
+            }
+            mStringBuilder.append("\n");
+            mStringBuilder.append("\n");
+        }
     }
 }

@@ -123,6 +123,10 @@ public class ApiClient {
 //                .observeOn(AndroidSchedulers.mainThread());
     }
 
+    public Observable<ResponseBody> updateQuestion(Question question) {
+        return mApiQiBu.updateQuestion(question);
+    }
+
     public Observable<ResultBeanInfo<OssTokenInfo>> getOssToken() {
         return mApiQiBu.getSTSToken()
                 .subscribeOn(Schedulers.newThread())

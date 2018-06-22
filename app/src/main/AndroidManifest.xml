@@ -34,6 +34,7 @@
         <activity android:name=".activitiy.MainActivity" />
         <activity android:name=".activitiy.QustionCheckActivity" />
         <activity android:name=".activitiy.UpdateWordActivity" />
+        <activity android:name=".activitiy.AddOrUpdateQustionActivity" />
     </application>
 
 </manifest>
