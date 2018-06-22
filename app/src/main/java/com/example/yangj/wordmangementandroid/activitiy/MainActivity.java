@@ -1,7 +1,9 @@
 package com.example.yangj.wordmangementandroid.activitiy;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
@@ -57,7 +59,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.ResponseBody;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -76,14 +77,17 @@ public class MainActivity extends AppCompatActivity {
     Button mBtnUploadWordImage;
     @BindView(R.id.btn_show_word_info)
     Button mBtnShowWordInfo;
+    @BindView(R.id.tv_path)
+    TextView mTvPath;
     //解析文件获取单词列表
     private List<Word> mWordListFile;
     //解析文件获取的同时保留练习信息，点击上传练习时再整合成Qustion
     private List<WordLoad> mWordLoadList = new ArrayList<>();
     private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
             + File.separator + "wordManagement" + File.separator;
-    //    String wordPath = BASE_PATH + "word_list_test.txt";
-    String wordPath = BASE_PATH + "一下1-80.txt";
+    private String wordFilePath = BASE_PATH + "一下1-80.txt";
+    private String mWordAudioDir = BASE_PATH + "单词小超人 一下 音频32-87";
+    private String mWordImagesDir = BASE_PATH + "一下1-30-all";
     private OSS mOss;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
@@ -100,14 +104,66 @@ public class MainActivity extends AppCompatActivity {
     private int uploadQuestionSkipedNumber = 0;
 
     private List<Word> mListAllWords;
+    private List<Question> mQuestionListRelease;
+
+    public static void start(Context context) {
+        Intent starter = new Intent(context, MainActivity.class);
+        context.startActivity(starter);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        showPath();
         requestPermission();
         listAll();
+        listAllQuestions();
+        MyApp app = (MyApp) getApplication();
+        mOssTokenInfo = app.getOssTokenInfo();
+        mOss = app.getOss();
+    }
+
+    private void showPath() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("单词文件：");
+        stringBuilder.append(new File(wordFilePath).getName());
+        stringBuilder.append("\n");
+        stringBuilder.append("音频目录：");
+        stringBuilder.append(new File(mWordAudioDir).getName());
+        stringBuilder.append("\n");
+        stringBuilder.append("单词图片目录：");
+        stringBuilder.append(new File(mWordImagesDir).getName());
+        stringBuilder.append("\n");
+        mTvPath.setText(stringBuilder.toString());
+    }
+
+    private void listAllQuestions() {
+        ApiClient.getInstance()
+                .listAllQuestions()
+                .subscribe(new Observer<ResultListInfo<Question>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResultListInfo<Question> questionResultListInfo) {
+                        mQuestionListRelease = questionResultListInfo.getData();
+                        Log.d(TAG, "listAllQuestions--onNext: size=" + mQuestionListRelease.size());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "listAllQuestions--onComplete");
+                    }
+                });
     }
 
     public void requestPermission() {
@@ -125,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
 
         File file = new File(path);
         if (!file.exists()) {
-            showDialog("file 不存在 name=" + file.getName() + "\nwordPath=" + file.getPath());
+            showDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
             return;
         }
 
@@ -363,7 +419,7 @@ public class MainActivity extends AppCompatActivity {
         mWordLoadList.clear();
         List<Word> wordList = new ArrayList<>();
         File file = new File(path);
-        Log.d(TAG, "loadFile: wordPath=" + path);
+        Log.d(TAG, "loadFile: wordFilePath=" + path);
         if (!file.exists()) {
             Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
             return wordList;
@@ -521,7 +577,7 @@ public class MainActivity extends AppCompatActivity {
                 + File.separator + "wordManagement" + File.separator + "two_up.txt";
         File file = new File(path);
         File fileOutPut = new File(file.getParentFile(), "two_up_output.txt");
-        Log.d(TAG, "loadFile: wordPath=" + path);
+        Log.d(TAG, "loadFile: wordFilePath=" + path);
         Log.d(TAG, "loadFile: file=" + file);
         if (!file.exists()) {
             Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
@@ -594,16 +650,18 @@ public class MainActivity extends AppCompatActivity {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_load_file:
-                mWordListFile = loadFile(wordPath);
+                mWordListFile = loadFile(wordFilePath);
                 mBtnLoadFile.setEnabled(false);
                 break;
             case R.id.btn_upload_audio:
-                String audioDir = BASE_PATH + "单词小超人 一下 音频32-87";
                 if (checkWordList()) {
-                    uploadAudios(audioDir);
+                    uploadAudios(mWordAudioDir);
                 }
                 break;
             case R.id.btn_upload_word_image:
+                if (checkWordList()) {
+                    uploadWordImages(mWordImagesDir);
+                }
                 break;
             case R.id.btn_upload_word:
                 if (mListAllWords == null || mListAllWords.isEmpty()) {
@@ -638,6 +696,98 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * 上传单词图片，正方形，长方形
+     */
+    private void uploadWordImages(String wordImagePath) {
+        if (mListAllWords == null || mListAllWords.isEmpty()) {
+            showDialog("No mListAllWords!");
+            return;
+        }
+
+        File wordImageDir = new File(wordImagePath);
+        if (!wordImageDir.exists() || !wordImageDir.isDirectory()) {
+            showDialog("单词图片目录错误！wordImagePath=" + wordImagePath);
+            return;
+        }
+
+        uploadAudioTotalNumber = 0;
+        uploadAudioFailedNumber = 0;
+        uploadAudioSkipNumber = 0;
+        File[] files = wordImageDir.listFiles();
+
+        //校验是否是目录
+        boolean isRightDir = true;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                File[] files1 = file.listFiles();
+                if (files1.length == 0) {
+                    Log.e(TAG, "uploadWordImages: 空目录：" + file.getName());
+                }
+            } else {
+                isRightDir = false;
+                break;
+            }
+        }
+
+        if (!isRightDir) {
+            showDialog("单词图片目录错误！wordImagePath=" + wordImagePath);
+            return;
+        }
+
+        Observable.fromArray(files)
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        Log.d(TAG, "uploadWordImages--apply1: ,threadName=" + Thread.currentThread().getName()
+                                + ",getName=" + file.getName());
+                        return file.listFiles().length != 0;
+                    }
+                })
+                .concatMap(new Function<File, ObservableSource<File>>() {
+                    @Override
+                    public ObservableSource<File> apply(File file) {
+//                        Log.d(TAG, "uploadWordImages--apply2: ,threadName=" + Thread.currentThread().getName()
+//                                + ",getName=" + file.getName());
+                        return Observable.fromArray(file.listFiles());
+                    }
+                })
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        String fileName = file.getName();
+//                        Log.d(TAG, "uploadWordImages--apply3: ,threadName=" + Thread.currentThread().getName());
+                        return fileName.endsWith("jpg") || fileName.endsWith("png");
+                    }
+                })
+//                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<File>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(File file) {
+                        Log.d(TAG, "uploadWordImages---onNext: file.getName=" + file.getName()
+                                + ",threadName=" + Thread.currentThread().getName());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "uploadWordImages---onError: e=" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "uploadWordImages---onComplete");
+                    }
+                });
+
+
+    }
+
     private List<Question> createQustions() {
         if (mListAllWords == null || mListAllWords.isEmpty()) {
             showDialog("No ListAllWords!");
@@ -655,10 +805,6 @@ public class MainActivity extends AppCompatActivity {
                     //SPELL_WORD_BY_READ_IMAGE 看图拼写
                     //SPELL_WORD_BY_LISTEN_WORD 听词拼写
                     //1 2，1 3，1 4，2 3，2 4
-                    Question questionSpellRead = new Question();
-                    questionSpellRead.setType(Question.Type.SPELL_WORD_BY_READ_IMAGE);
-                    questionSpellRead.setWordId(wordRelease.id);
-
                     List<String> rightOptions = wordLoad.rightOptions;
                     List<String> wrongOption1 = wordLoad.wrongOption1;
                     List<String> wrongOption2 = wordLoad.wrongOption2;
@@ -672,12 +818,37 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     }
 
+                    //听文选词 CHOOSE_WORD_BY_LISTEN_SENTENCE
+                    Question questionChooseWordListener = new Question();
+                    questionChooseWordListener.setType(Question.Type.CHOOSE_WORD_BY_LISTEN_SENTENCE);
+                    questionChooseWordListener.setWordId(wordRelease.id);
+                    List<Integer> answerChooseListen = new ArrayList<>();
+                    List<String> optionsChooseListen = new ArrayList<>();
+                    if (i % 2 == 0) {
+                        answerChooseListen.add(0);
+                        optionsChooseListen.add(wordLoad.word);
+                        optionsChooseListen.add(wordLoad.wordEnglishWrong);
+                    } else {
+                        answerChooseListen.add(1);
+                        optionsChooseListen.add(wordLoad.wordEnglishWrong);
+                        optionsChooseListen.add(wordLoad.word);
+                    }
+                    questionChooseWordListener.setOptions(optionsChooseListen);
+                    questionChooseWordListener.setAnswersIndex(answerChooseListen);
+
+                    questionList.add(questionChooseWordListener);//add
+
                     //看图拼写
+                    Question questionSpellRead = new Question();
+                    questionSpellRead.setType(Question.Type.SPELL_WORD_BY_READ_IMAGE);
+                    questionSpellRead.setWordId(wordRelease.id);
                     List<Integer> answerSpell1 = new ArrayList<>();
                     List<String> optionsSpell1 = new ArrayList<>();
                     questionSpell(i, rightOptions, wrongOption1, answerSpell1, optionsSpell1);//
                     questionSpellRead.setAnswersIndex(answerSpell1);
                     questionSpellRead.setOptions(optionsSpell1);
+
+                    questionList.add(questionSpellRead);//add
 
                     //听词拼写
                     Question questionSpellListen = new Question();
@@ -689,8 +860,7 @@ public class MainActivity extends AppCompatActivity {
                     questionSpellListen.setAnswersIndex(answerSpell2);
                     questionSpellListen.setOptions(optionsSpell2);
 
-                    questionList.add(questionSpellRead);
-                    questionList.add(questionSpellListen);
+                    questionList.add(questionSpellListen);//add
 
                     break;
                 }
@@ -777,9 +947,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        MyApp app = (MyApp) getApplication();
-        mOssTokenInfo = app.getOssTokenInfo();
-        mOss = app.getOss();
         File audioFile = new File(audioDir);
         if (!audioFile.exists() || !audioFile.isDirectory()) {
             showDialog("音频目录错误！audioDir=" + audioDir);
@@ -937,7 +1104,7 @@ public class MainActivity extends AppCompatActivity {
                 .concatMap(new Function<Word, ObservableSource<ResultBeanInfo<Word>>>() {
 
                     @Override
-                    public ObservableSource<ResultBeanInfo<Word>> apply(Word word) throws Exception {
+                    public ObservableSource<ResultBeanInfo<Word>> apply(Word word) {
                         Log.d(TAG, "apply: word=" + word.getEnglishSpell());
                         logStringBuilder.append("----------------------------");
                         logStringBuilder.append("\n");
@@ -997,20 +1164,41 @@ public class MainActivity extends AppCompatActivity {
      */
     private void uploadQustions(List<Question> questions) {
 
+        if (mQuestionListRelease == null || mQuestionListRelease.isEmpty()) {
+            showDialog("No mQuestionListRelease!");
+            return;
+        }
+
         if (questions == null || questions.isEmpty()) {
             showDialog("No questions!");
             return;
         }
 
-//        Question question = questions.get(questions.size() - 1);
-//        questions = new ArrayList<>();
-//        questions.add(question);
+        Question question = questions.get(questions.size() - 1);//////////////////////
+        questions = new ArrayList<>();
+        questions.add(question);
         uploadQuestionTotalNumber = questions.size();
         uploadQuestionSkipedNumber = 0;
         Observable.fromIterable(questions)
-                .concatMap(new Function<Question, ObservableSource<ResponseBody>>() {
+                .filter(new Predicate<Question>() {
                     @Override
-                    public ObservableSource<ResponseBody> apply(Question question) {
+                    public boolean test(Question question) {
+                        boolean isAlreadyExist = false;
+                        for (int i = mQuestionListRelease.size() - 1; i >= 0; i--) {
+                            Question questionRelease = mQuestionListRelease.get(i);
+                            if (questionRelease.getWordId() == question.getWordId()
+                                    && questionRelease.getType().equals(question.getType())) {
+                                isAlreadyExist = true;
+                                Log.d(TAG, "uploadQustions--skip: getWordId=" + questionRelease.getWordId());
+                                uploadQuestionSkipedNumber++;
+                            }
+                        }
+                        return !isAlreadyExist;
+                    }
+                })
+                .concatMap(new Function<Question, ObservableSource<ResultBeanInfo<Question>>>() {
+                    @Override
+                    public ObservableSource<ResultBeanInfo<Question>> apply(Question question) {
                         return ApiClient.getInstance()
                                 .createQuestion(question);
                     }
@@ -1018,27 +1206,28 @@ public class MainActivity extends AppCompatActivity {
                 .delay(100, TimeUnit.MILLISECONDS)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<ResponseBody>() {
+                .subscribe(new Observer<ResultBeanInfo<Question>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
 
                     }
 
                     @Override
-                    public void onNext(ResponseBody responseBody) {
-
+                    public void onNext(ResultBeanInfo<Question> questionResultBeanInfo) {
+                        Log.d(TAG, "uploadQustions--onNext");
                     }
 
                     @Override
                     public void onError(Throwable e) {
-
+                        Log.d(TAG, "uploadQustions--onError e=" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        showDialog("上传练习成功！"
-                                + "\n共：" + uploadQuestionTotalNumber
-                                + "\n跳过：" + uploadQuestionSkipedNumber);
+                        Log.d(TAG, "uploadQustions--onComplete");
+                        showDialog("上传练习完成！" +
+                                "\n共：" + uploadQuestionTotalNumber +
+                                "\n跳过：" + uploadQuestionSkipedNumber);
                     }
                 });
     }
@@ -1079,5 +1268,9 @@ public class MainActivity extends AppCompatActivity {
                 .create()
                 .show();
 //        super.onBackPressed();
+    }
+
+    @OnClick(R.id.tv_path)
+    public void onViewClicked() {
     }
 }

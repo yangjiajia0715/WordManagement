@@ -11,6 +11,7 @@ import okhttp3.ResponseBody;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 
 /**
  * 启步接口，调试用，连接本地数据库
@@ -21,11 +22,17 @@ public interface ApiQiBu {
     @GET("/word/listAll")
     Observable<ResultListInfo<Word>> listAll();
 
+    @GET("/question/listAll")
+    Observable<ResultListInfo<Question>> listAllQuestions();
+
     @POST("/word")
     Observable<ResultBeanInfo<Word>> create(@Body Word word);
 
+    @PUT("/word")
+    Observable<ResponseBody> updateWord(@Body Word word);
+
     @POST("/question")
-    Observable<ResponseBody> createQuestion(@Body Question question);
+    Observable<ResultBeanInfo<Question>> createQuestion(@Body Question question);
 
     @GET("/oss/getSTSToken")
     Observable<ResultBeanInfo<OssTokenInfo>> getSTSToken();

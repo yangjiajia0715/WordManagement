@@ -99,13 +99,25 @@ public class ApiClient {
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
+    public Observable<ResultListInfo<Question>> listAllQuestions() {
+        return mApiQiBu.listAllQuestions()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread());
+    }
+
     public Observable<ResultBeanInfo<Word>> createWord(Word word) {
         return mApiQiBu.create(word);
 //                .subscribeOn(Schedulers.newThread())
 //                .observeOn(AndroidSchedulers.mainThread());
     }
 
-    public Observable<ResponseBody> createQuestion(Question question) {
+    public Observable<ResponseBody> updateWord(Word word) {
+        return mApiQiBu.updateWord(word);
+//                .subscribeOn(Schedulers.newThread())
+//                .observeOn(AndroidSchedulers.mainThread());
+    }
+
+    public Observable<ResultBeanInfo<Question>> createQuestion(Question question) {
         return mApiQiBu.createQuestion(question);
 //                .subscribeOn(Schedulers.newThread())
 //                .observeOn(AndroidSchedulers.mainThread());

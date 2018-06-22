@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/btn_word"
+        android:layout_width="match_parent"
+        android:text="单词管理"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_question_check"
+        android:layout_width="match_parent"
+        android:text="检查练习"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btn_upload_question"
+        android:text="上传练习"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+</LinearLayout>
