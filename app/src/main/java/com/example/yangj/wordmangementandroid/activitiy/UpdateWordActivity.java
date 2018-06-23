@@ -1,13 +1,10 @@
 package com.example.yangj.wordmangementandroid.activitiy;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -59,7 +56,7 @@ import okhttp3.ResponseBody;
  * egg-square-pic.png
  * Created by yangjiajia on 2018/6/21.
  */
-public class UpdateWordActivity extends AppCompatActivity {
+public class UpdateWordActivity extends BaseActivity {
     private static final String TAG = "UpdateWordActivity";
 
     @BindView(R.id.btn_upload_audio)
@@ -86,8 +83,12 @@ public class UpdateWordActivity extends AppCompatActivity {
     private String wordFilePath = BASE_PATH + "一下1-80.txt";
     //一上 资源汇总31-94 ,音频已上传，单词已更新 2018-6-21 20:08:39
 //    private String mWordAudioDir = BASE_PATH + "一上 资源汇总31-94";//2018-6-21 20:08:39
-    private String mWordAudioDir = BASE_PATH;
-    private String mWordImagesDir = BASE_PATH + "一下资源汇总32-87";
+    private String mWordAudioDir = BASE_PATH ;
+//    private String mWordImagesDir = BASE_PATH + "一下资源汇总32-87";
+//    private String mWordImagesDir = BASE_PATH + "一上 资源汇总31-94";
+    private String mWordImagesDir = BASE_PATH + "test";
+//    private String mWordImagesDir = BASE_PATH + "oneDown32-87b";
+//    private String mWordImagesDir = BASE_PATH;
     private String mWordSentencePath = BASE_PATH + "一上31-94新例句.txt";
     private List<Word> mListAllWords;
 
@@ -147,7 +148,7 @@ public class UpdateWordActivity extends AppCompatActivity {
     }
 
     /**
-     * 图片命名规则：
+     * 图片命名规则：egg
      * egg-rect-right-pic-1.png
      * egg-rect-right-pic-2.png
      * egg-rect-right-pic-3.png
@@ -158,8 +159,19 @@ public class UpdateWordActivity extends AppCompatActivity {
         needUploadWords.clear();
         File file = new File(imagePath);
         if (!file.exists()) {
-            showDialog("目录不存在：" + file.getName());
+            showDialog("目录不存在：" + file.getPath());
             return;
+        }
+
+        if (file.listFiles() == null) {
+            showDialog("空目录：" + file.getPath());
+            return;
+        }
+
+        File[] files = file.listFiles();
+        for (File file1 : files) {
+            String file1Name = file1.getName();
+            Log.d(TAG, "uploadWordImages: getName=" + file1Name);
         }
 
         Observable.fromArray(file.listFiles())
@@ -182,6 +194,7 @@ public class UpdateWordActivity extends AppCompatActivity {
                                 || file.getName().contains("rect-right-pic-1");
                     }
                 })
+//                .take(2)
                 .subscribe(new Observer<File>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -190,8 +203,8 @@ public class UpdateWordActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(File file) {
-                        Log.d(TAG, "onNext: " + file.getName());
-                        uploadFile(file.getPath());
+                        Log.d(TAG, "onNext: getName=" + file.getName());
+//                        uploadFile(file.getPath());
                     }
 
                     @Override
@@ -576,20 +589,6 @@ public class UpdateWordActivity extends AppCompatActivity {
                 });
     }
 
-
-    public void showDialog(String msg) {
-        new AlertDialog.Builder(this)
-                .setMessage(msg)
-                .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-
-                    }
-                })
-                .create()
-                .show();
-    }
 
     private void uploadFile(String path) {
         if (mOssTokenInfo == null || mOss == null) {

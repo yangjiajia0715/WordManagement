@@ -37,7 +37,8 @@ public class HomeActiivity extends AppCompatActivity {
                 MainActivity.start(this);
                 break;
             case R.id.btn_question_check:
-                QustionCheckActivity.start(this);
+                FileSelectorActivity.startForResult(this,1);
+//                QustionCheckActivity.start(this);
                 break;
             case R.id.btn_upload_question:
 //                UpdateWordActivity.start(this);

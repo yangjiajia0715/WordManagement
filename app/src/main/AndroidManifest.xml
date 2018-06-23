@@ -35,6 +35,7 @@
         <activity android:name=".activitiy.QustionCheckActivity" />
         <activity android:name=".activitiy.UpdateWordActivity" />
         <activity android:name=".activitiy.AddOrUpdateQustionActivity" />
+        <activity android:name=".activitiy.FileSelectorActivity" />
     </application>
 
 </manifest>

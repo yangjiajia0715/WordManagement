@@ -25,20 +25,19 @@
             android:text="解析文件" />
 
         <Button
-            android:id="@+id/btn_upload_audio"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="上传音频" />
-
-        <Button
             android:id="@+id/btn_upload_word_image"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:visibility="gone"
             android:text="上传单词图片" />
 
-
+        <Button
+            android:id="@+id/btn_upload_word"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="上传单词" />
     </LinearLayout>
 
     <LinearLayout
@@ -47,11 +46,11 @@
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_upload_word"
+            android:id="@+id/btn_upload_questions_images"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="上传单词" />
+            android:text="上传练习图片" />
 
         <Button
             android:id="@+id/btn_upload_questions"

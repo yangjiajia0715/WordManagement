@@ -9,7 +9,6 @@ import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
@@ -20,7 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.alibaba.sdk.android.oss.ClientException;
-import com.alibaba.sdk.android.oss.OSS;
 import com.alibaba.sdk.android.oss.ServiceException;
 import com.alibaba.sdk.android.oss.callback.OSSCompletedCallback;
 import com.alibaba.sdk.android.oss.model.PutObjectRequest;
@@ -46,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -60,7 +57,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION = 262;
     @BindView(R.id.btn_load_file)
@@ -71,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
     Button mBtnUpdateQuestions;
     @BindView(R.id.sv_log)
     TextView mSvLog;
-    @BindView(R.id.btn_upload_audio)
-    Button mBtnUploadAudio;
     @BindView(R.id.btn_upload_word_image)
     Button mBtnUploadWordImage;
     @BindView(R.id.btn_show_word_info)
@@ -86,9 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
             + File.separator + "wordManagement" + File.separator;
     private String wordFilePath = BASE_PATH + "一下1-80.txt";
-    private String mWordAudioDir = BASE_PATH + "单词小超人 一下 音频32-87";
     private String mWordImagesDir = BASE_PATH + "一下1-30-all";
-    private OSS mOss;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
     private SimpleDateFormat mSdf = new SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault());
@@ -96,14 +89,10 @@ public class MainActivity extends AppCompatActivity {
     private int updateWordTotalNumber = 0;
     private int updateWordFailedNumber = 0;
 
-    private int uploadAudioSkipNumber = 0;
-    private int uploadAudioTotalNumber = 0;
-    private int uploadAudioFailedNumber = 0;
-
     private int uploadQuestionTotalNumber = 0;
     private int uploadQuestionSkipedNumber = 0;
 
-    private List<Word> mListAllWords;
+    private List<Word> mListAllWordsRelease;
     private List<Question> mQuestionListRelease;
 
     public static void start(Context context) {
@@ -116,13 +105,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        setTitle("解析并上传单词");
         showPath();
         requestPermission();
         listAll();
         listAllQuestions();
         MyApp app = (MyApp) getApplication();
         mOssTokenInfo = app.getOssTokenInfo();
-        mOss = app.getOss();
     }
 
     private void showPath() {
@@ -130,12 +119,8 @@ public class MainActivity extends AppCompatActivity {
         stringBuilder.append("单词文件：");
         stringBuilder.append(new File(wordFilePath).getName());
         stringBuilder.append("\n");
-        stringBuilder.append("音频目录：");
-        stringBuilder.append(new File(mWordAudioDir).getName());
-        stringBuilder.append("\n");
         stringBuilder.append("单词图片目录：");
         stringBuilder.append(new File(mWordImagesDir).getName());
-        stringBuilder.append("\n");
         mTvPath.setText(stringBuilder.toString());
     }
 
@@ -174,10 +159,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Nullable
     private void updateFile(String path) {
-        if (mOssTokenInfo == null || mOss == null) {
-            showDialog("mOssTokenInfo or mOss不存在");
-            return;
-        }
 
         File file = new File(path);
         if (!file.exists()) {
@@ -190,19 +171,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-//        UUID uuid = UUID.randomUUID();
-        String objectKey = null;
-        if (file.getName().endsWith(".mp3")) {
-            objectKey = "courseware/audio/" + file.getName();
-        } else {
-            objectKey = "courseware/image/" + file.getName();
-        }
-        Log.d(TAG, "updateFile: objectKey=" + objectKey);
-
-        PutObjectRequest putObjectRequest = new PutObjectRequest(mOssTokenInfo.getBucket()
-                , objectKey, path);
-
-        mOss.asyncPutObject(putObjectRequest, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+        uploadFile(path, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
             @Override
             public void onSuccess(PutObjectRequest request, PutObjectResult result) {
                 String objectKey = request.getObjectKey();
@@ -210,56 +179,6 @@ public class MainActivity extends AppCompatActivity {
                 String fileName = new File(objectKey).getName();
                 String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
                 fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1
-                if ("mp3".equals(suffix)) {//mp3
-                    if (mWordListFile != null) {
-                        boolean find = false;
-                        for (Word word : mWordListFile) {
-                            if (TextUtils.equals(word.getEnglishSpell(), fileName)) {
-                                find = true;
-                                word.setEnglishPronunciation(url);
-                                break;
-                            } else if (TextUtils.equals(word.getEnglishSpell() + 1, fileName)) {
-                                find = true;
-                                word.setExampleSentenceAudio(url);
-                                break;
-                            }
-                        }
-                        if (find) {
-                            Log.d(TAG, "updateFile--onSuccess-find: objectKey=" + objectKey);
-                        } else {
-                            Log.e(TAG, "updateFile--onSuccess-mWordListFile-not-find: objectKey=" + objectKey);
-                        }
-
-                    }
-                } else {//image
-                    if (mWordListFile != null) {
-                        for (Word word : mWordListFile) {
-//                            word.setImage(url);
-//                            word.setRectangleImage(url);
-                        }
-                    }
-                }
-
-//                request.get
-//                 onSuccess: courseware/audio/cow.mp3,fileName=cow
-//                Log.d(TAG, "onSuccess: " + request.getObjectKey() + ",fileName=" + fileName);
-//                 onSuccess: getETag=FA86230E1A440867E04CD4E84FBDDEF5
-//                 onSuccess: getRequestId=5B29BDC1ACB2DB2870772C99
-//                Log.d(TAG, "onSuccess: getETag=" + result.getETag());
-//                Log.d(TAG, "onSuccess: getRequestId=" + result.getRequestId());
-//                Log.d(TAG, "onSuccess: request=" + request);
-//                Log.d(TAG, "onSuccess: result=" + result);
-//                Set<Map.Entry<String, String>> entries = request.getCallbackParam().entrySet();
-//                for (Map.Entry<String, String> entry : entries) {
-//                    Log.d(TAG, "onSuccess callback: getKey=" + entry.getKey() + ",getValue=" + entry.getValue());
-//                }
-//                Map<String, String> responseHeader = result.getResponseHeader();
-//
-//                Set<Map.Entry<String, String>> entries1 = responseHeader.entrySet();
-//                for (Map.Entry<String, String> stringEntry : entries1) {
-//                    Log.d(TAG, "onSuccess header: getKey=" + stringEntry.getKey() + ",getValue=" + stringEntry.getValue());
-//
-//                }
             }
 
             @Override
@@ -268,27 +187,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        try {
-            mOss.putObject(putObjectRequest);
-        } catch (ClientException e) {
-            e.printStackTrace();
-        } catch (ServiceException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void showDialog(String msg) {
-        new AlertDialog.Builder(this)
-                .setMessage(msg)
-                .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-
-                    }
-                })
-                .create()
-                .show();
     }
 
     private void listAll() {
@@ -302,8 +200,8 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(ResultListInfo<Word> wordResultListInfo) {
-                        mListAllWords = wordResultListInfo.getData();
-                        showDialog("listAll size=" + mListAllWords.size());
+                        mListAllWordsRelease = wordResultListInfo.getData();
+                        showDialog("listAll size=" + mListAllWordsRelease.size());
                     }
 
                     @Override
@@ -329,8 +227,6 @@ public class MainActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.option_reset:
                 mBtnLoadFile.setEnabled(true);
-                mBtnUploadAudio.setEnabled(true);
-                mBtnUploadWordImage.setEnabled(true);
                 mBtnUpdateWord.setEnabled(true);
                 mBtnUpdateQuestions.setEnabled(true);
                 Toast.makeText(this, "已重置！", Toast.LENGTH_SHORT).show();
@@ -645,7 +541,7 @@ public class MainActivity extends AppCompatActivity {
         return wordList;
     }
 
-    @OnClick({R.id.btn_load_file, R.id.btn_upload_audio, R.id.btn_upload_word_image,
+    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images,
             R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
     public void onViewClicked(View view) {
         switch (view.getId()) {
@@ -653,19 +549,9 @@ public class MainActivity extends AppCompatActivity {
                 mWordListFile = loadFile(wordFilePath);
                 mBtnLoadFile.setEnabled(false);
                 break;
-            case R.id.btn_upload_audio:
-                if (checkWordList()) {
-                    uploadAudios(mWordAudioDir);
-                }
-                break;
-            case R.id.btn_upload_word_image:
-                if (checkWordList()) {
-                    uploadWordImages(mWordImagesDir);
-                }
-                break;
             case R.id.btn_upload_word:
-                if (mListAllWords == null || mListAllWords.isEmpty()) {
-                    Toast.makeText(this, "No mListAllWords!", Toast.LENGTH_SHORT).show();
+                if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
+                    Toast.makeText(this, "No mListAllWordsRelease!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -674,6 +560,9 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     mBtnLoadFile.setEnabled(true);
                 }
+                break;
+            case R.id.btn_upload_questions_images:
+                uploadQustionsImages("");
                 break;
             case R.id.btn_upload_questions:
                 if (checkWordList()) {
@@ -696,100 +585,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 上传单词图片，正方形，长方形
-     */
-    private void uploadWordImages(String wordImagePath) {
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showDialog("No mListAllWords!");
-            return;
-        }
-
-        File wordImageDir = new File(wordImagePath);
-        if (!wordImageDir.exists() || !wordImageDir.isDirectory()) {
-            showDialog("单词图片目录错误！wordImagePath=" + wordImagePath);
-            return;
-        }
-
-        uploadAudioTotalNumber = 0;
-        uploadAudioFailedNumber = 0;
-        uploadAudioSkipNumber = 0;
-        File[] files = wordImageDir.listFiles();
-
-        //校验是否是目录
-        boolean isRightDir = true;
-        for (File file : files) {
-            if (file.isDirectory()) {
-                File[] files1 = file.listFiles();
-                if (files1.length == 0) {
-                    Log.e(TAG, "uploadWordImages: 空目录：" + file.getName());
-                }
-            } else {
-                isRightDir = false;
-                break;
-            }
-        }
-
-        if (!isRightDir) {
-            showDialog("单词图片目录错误！wordImagePath=" + wordImagePath);
-            return;
-        }
-
-        Observable.fromArray(files)
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        Log.d(TAG, "uploadWordImages--apply1: ,threadName=" + Thread.currentThread().getName()
-                                + ",getName=" + file.getName());
-                        return file.listFiles().length != 0;
-                    }
-                })
-                .concatMap(new Function<File, ObservableSource<File>>() {
-                    @Override
-                    public ObservableSource<File> apply(File file) {
-//                        Log.d(TAG, "uploadWordImages--apply2: ,threadName=" + Thread.currentThread().getName()
-//                                + ",getName=" + file.getName());
-                        return Observable.fromArray(file.listFiles());
-                    }
-                })
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        String fileName = file.getName();
-//                        Log.d(TAG, "uploadWordImages--apply3: ,threadName=" + Thread.currentThread().getName());
-                        return fileName.endsWith("jpg") || fileName.endsWith("png");
-                    }
-                })
-//                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<File>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(File file) {
-                        Log.d(TAG, "uploadWordImages---onNext: file.getName=" + file.getName()
-                                + ",threadName=" + Thread.currentThread().getName());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d(TAG, "uploadWordImages---onError: e=" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        Log.d(TAG, "uploadWordImages---onComplete");
-                    }
-                });
-
+    private void uploadQustionsImages(String path) {
 
     }
 
     private List<Question> createQustions() {
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
+        if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
             showDialog("No ListAllWords!");
             return null;
         }
@@ -797,8 +598,8 @@ public class MainActivity extends AppCompatActivity {
         List<Question> questionList = new ArrayList<>();
         for (int i = 0; i < mWordLoadList.size(); i++) {
             WordLoad wordLoad = mWordLoadList.get(i);
-            for (int j = mListAllWords.size() - 1; j >= 0; j--) {
-                Word wordRelease = mListAllWords.get(j);
+            for (int j = mListAllWordsRelease.size() - 1; j >= 0; j--) {
+                Word wordRelease = mListAllWordsRelease.get(j);
                 //每个单词10道题，
                 if (TextUtils.equals(wordLoad.word, wordRelease.getEnglishSpell())) {
                     //CHOOSE_WORD_BY_LISTEN_SENTENCE：听文选词
@@ -816,6 +617,27 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (wrongOption2 == null || wrongOption2.size() != 2) {
                         break;
+                    }
+
+                    //词意关联 MATCH_WORD_MEANING
+                    Question questionMatchMeaning = new Question();
+                    questionMatchMeaning.setType(Question.Type.MATCH_WORD_MEANING);
+                    questionMatchMeaning.setWordId(wordRelease.id);
+                    List<Integer> answerMatchMeaning = new ArrayList<>();
+                    List<String> optionsMatchMeaning = new ArrayList<>();
+                    if (i % 2 == 0) {
+                        answerMatchMeaning.add(0);
+                        optionsMatchMeaning.add(wordRelease.getChineseSpell());
+                        optionsMatchMeaning.add(wordLoad.wordChineseWrong);
+                    } else {
+                        answerMatchMeaning.add(1);
+                        optionsMatchMeaning.add(wordLoad.wordChineseWrong);
+                        optionsMatchMeaning.add(wordRelease.getChineseSpell());
+                    }
+                    questionMatchMeaning.setAnswersIndex(answerMatchMeaning);
+                    questionMatchMeaning.setOptions(optionsMatchMeaning);
+                    if (optionsMatchMeaning.size() != 2) {//校验
+                        questionList.add(questionMatchMeaning);//add
                     }
 
                     //听文选词 CHOOSE_WORD_BY_LISTEN_SENTENCE
@@ -941,130 +763,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void uploadAudios(String audioDir) {
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showDialog("No mListAllWords!");
-            return;
-        }
-
-        File audioFile = new File(audioDir);
-        if (!audioFile.exists() || !audioFile.isDirectory()) {
-            showDialog("音频目录错误！audioDir=" + audioDir);
-            return;
-        }
-
-        uploadAudioTotalNumber = 0;
-        uploadAudioFailedNumber = 0;
-        uploadAudioSkipNumber = 0;
-        File[] files = audioFile.listFiles();
-
-        //校验是否是目录
-        boolean isRightDir = true;
-        for (File file : files) {
-            if (file.isDirectory()) {
-                File[] files1 = file.listFiles();
-                if (files1.length == 0) {
-                    Log.e(TAG, "uploadAudios: 空目录：" + file.getName());
-                }
-            } else {
-                isRightDir = false;
-                break;
-            }
-        }
-
-        if (!isRightDir) {
-            showDialog("音频目录错误！audioDir=" + audioDir);
-            return;
-        }
-
-        mBtnUploadAudio.setEnabled(false);
-        Observable.fromArray(files)
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        return file.listFiles().length > 0;
-                    }
-                })
-                .concatMap(new Function<File, ObservableSource<File>>() {
-                    @Override
-                    public ObservableSource<File> apply(final File file) {
-                        File[] mp3Files = file.listFiles();
-                        return Observable.fromArray(mp3Files);
-                    }
-                })
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        return file.getPath().endsWith("mp3");
-                    }
-                })
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        uploadAudioTotalNumber++;
-                        boolean alreadyExist = false;
-                        for (Word wordItem : mListAllWords) {
-                            String englishPronunciation = wordItem.getEnglishPronunciation();
-                            String sentenceAudio = wordItem.getExampleSentenceAudio();
-                            Log.d(TAG, "uploadAudios--test:englishPronunciation= " + englishPronunciation);
-                            Log.d(TAG, "uploadAudios--test: sentenceAudio=" + sentenceAudio);
-                            String fileName = file.getName();
-                            if (!TextUtils.isEmpty(englishPronunciation) && englishPronunciation.contains(fileName)) {
-                                alreadyExist = true;
-                                break;
-                            }
-                            if (!TextUtils.isEmpty(sentenceAudio) && sentenceAudio.contains(fileName)) {
-                                alreadyExist = true;
-                                break;
-                            }
-                        }
-                        if (alreadyExist) {
-                            uploadAudioSkipNumber++;
-                        }
-                        Log.d(TAG, "uploadAudios--test: alreadyExist=" + alreadyExist + ",getName=" + file.getName());
-                        return !alreadyExist;
-                    }
-                })
-                .delay(300, TimeUnit.MILLISECONDS)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<File>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(File file) {
-                        Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath());
-//                        Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath() + Thread.currentThread().getName());
-                        updateFile(file.getPath());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d(TAG, "uploadAudios--onError: e=" + e.getMessage());
-                        uploadAudioFailedNumber++;
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        showDialog("音频上传成功！"
-                                + "\n共：" + uploadAudioTotalNumber
-                                + "\n跳过：" + uploadAudioSkipNumber
-                                + "\n失败：" + uploadAudioFailedNumber);
-                    }
-                });
-
-//        updateFile(audioDir);
-    }
-
     private void uploadWordList() {
         mBtnUpdateWord.setEnabled(false);
 
         logStringBuilder.setLength(0);
-//        Word word = mWordListFile.get(0);
-//        mWordListFile = new ArrayList<>();
-//        mWordListFile.add(word);
 
         updateWordTotalNumber = mWordListFile.size();
         updateWordSkipNumber = 0;
@@ -1091,7 +793,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public boolean test(Word word) {
                         boolean alreadyExist = false;
-                        for (Word listAllWord : mListAllWords) {
+                        for (Word listAllWord : mListAllWordsRelease) {
                             if (TextUtils.equals(word.getEnglishSpell(), listAllWord.getEnglishSpell())) {
                                 alreadyExist = true;
                                 updateWordSkipNumber++;
@@ -1119,9 +821,7 @@ public class MainActivity extends AppCompatActivity {
                                 .createWord(word);
                     }
                 })
-                .delay(300, TimeUnit.MILLISECONDS)
                 .subscribeOn(Schedulers.newThread())
-//                .subscribeOn(Schedulers.single())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ResultBeanInfo<Word>>() {
 
@@ -1174,9 +874,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        Question question = questions.get(questions.size() - 1);//////////////////////
-        questions = new ArrayList<>();
-        questions.add(question);
         uploadQuestionTotalNumber = questions.size();
         uploadQuestionSkipedNumber = 0;
         Observable.fromIterable(questions)
@@ -1203,7 +900,7 @@ public class MainActivity extends AppCompatActivity {
                                 .createQuestion(question);
                     }
                 })
-                .delay(100, TimeUnit.MILLISECONDS)
+                .takeLast(1)////////////////////////////////////
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ResultBeanInfo<Question>>() {
@@ -1267,10 +964,6 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .create()
                 .show();
-//        super.onBackPressed();
     }
 
-    @OnClick(R.id.tv_path)
-    public void onViewClicked() {
-    }
 }
