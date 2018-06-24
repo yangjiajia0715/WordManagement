@@ -126,7 +126,7 @@ public class UpdateWordActivity extends BaseActivity {
                 uploadAudios(mWordAudioDir);
                 break;
             case R.id.btn_load_sentence:
-                showDialog("注意：只能解析仅仅有一个例句的文件");
+                showProgressDialog("注意：只能解析仅仅有一个例句的文件");
                 loadFile(mWordSentencePath);
                 break;
             case R.id.btn_preview:
@@ -159,12 +159,12 @@ public class UpdateWordActivity extends BaseActivity {
         needUploadWords.clear();
         File file = new File(imagePath);
         if (!file.exists()) {
-            showDialog("目录不存在：" + file.getPath());
+            showProgressDialog("目录不存在：" + file.getPath());
             return;
         }
 
         if (file.listFiles() == null) {
-            showDialog("空目录：" + file.getPath());
+            showProgressDialog("空目录：" + file.getPath());
             return;
         }
 
@@ -253,12 +253,12 @@ public class UpdateWordActivity extends BaseActivity {
 
                     @Override
                     public void onError(Throwable e) {
-                        showDialog("更新练习失败");
+                        showProgressDialog("更新练习失败");
                     }
 
                     @Override
                     public void onComplete() {
-                        showDialog("更新练习成功 共：" + needUpdateQustionsSuccessNumber);
+                        showProgressDialog("更新练习成功 共：" + needUpdateQustionsSuccessNumber);
                     }
                 });
 
@@ -350,7 +350,7 @@ public class UpdateWordActivity extends BaseActivity {
             Log.d(TAG, "loadFile: Exception=" + e.getMessage());
         }
 
-        showDialog("共更新单词数：" + total);
+        showProgressDialog("共更新单词数：" + total);
 
     }
 
@@ -403,7 +403,7 @@ public class UpdateWordActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        showDialog("更新成功：共：" + uploadWordTotalNumber +
+                        showProgressDialog("更新成功：共：" + uploadWordTotalNumber +
                                 "\n失败：" + uploadAudioFailedNumber);
                     }
                 });
@@ -451,13 +451,13 @@ public class UpdateWordActivity extends BaseActivity {
 
     private void uploadAudios(String audioDir) {
         if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showDialog("No mListAllWords!");
+            showProgressDialog("No mListAllWords!");
             return;
         }
 
         File audioFile = new File(audioDir);
         if (!audioFile.exists() || !audioFile.isDirectory()) {
-            showDialog("音频目录错误！audioDir=" + audioDir);
+            showProgressDialog("音频目录错误！audioDir=" + audioDir);
             return;
         }
 
@@ -482,7 +482,7 @@ public class UpdateWordActivity extends BaseActivity {
         }
 
         if (!isRightDir) {
-            showDialog("音频目录错误！audioDir=" + audioDir);
+            showProgressDialog("音频目录错误！audioDir=" + audioDir);
             return;
         }
 
@@ -553,7 +553,7 @@ public class UpdateWordActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        showDialog("音频上传成功！"
+                        showProgressDialog("音频上传成功！"
                                 + "\n共：" + uploadAudioTotalNumber
                                 + "\n跳过：" + uploadAudioSkipNumber
                                 + "\n失败：" + uploadAudioFailedNumber);
@@ -579,12 +579,12 @@ public class UpdateWordActivity extends BaseActivity {
 
                     @Override
                     public void onError(Throwable e) {
-                        showDialog("listAll onError=" + e.getMessage());
+                        showProgressDialog("listAll onError=" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        showDialog("单词列表获取成功！共：" + mListAllWords.size());
+                        showProgressDialog("单词列表获取成功！共：" + mListAllWords.size());
                     }
                 });
     }
@@ -592,18 +592,18 @@ public class UpdateWordActivity extends BaseActivity {
 
     private void uploadFile(String path) {
         if (mOssTokenInfo == null || mOss == null) {
-            showDialog("mOssTokenInfo or mOss不存在");
+            showProgressDialog("mOssTokenInfo or mOss不存在");
             return;
         }
 
         final File file = new File(path);
         if (!file.exists()) {
-            showDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
+            showProgressDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
             return;
         }
 
         if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showDialog("请先获取线上单词列表");
+            showProgressDialog("请先获取线上单词列表");
             return;
         }
 

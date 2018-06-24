@@ -57,7 +57,7 @@ public class QustionCheckActivity extends BaseActivity {
     }
 
     private void listAllQuestions() {
-        showDialog();
+        showProgressDialog();
         ApiClient.getInstance()
                 .listAllQuestions()
                 .subscribe(new Observer<ResultListInfo<Question>>() {
@@ -74,13 +74,13 @@ public class QustionCheckActivity extends BaseActivity {
 
                     @Override
                     public void onError(Throwable e) {
-                        hideDialog();
+                        hideProgressDialog();
                         Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        hideDialog();
+                        hideProgressDialog();
                         mTvCheckQuestionResult.setText("共：" + mQuestionListRelease.size());
                         Log.d(TAG, "listAllQuestions--onComplete");
                     }
@@ -93,7 +93,7 @@ public class QustionCheckActivity extends BaseActivity {
             return;
         }
         groups.clear();
-        showDialog();
+        showProgressDialog();
 
         Observable.fromIterable(mQuestionListRelease)
                 .groupBy(new Function<Question, Integer>() {
@@ -121,7 +121,7 @@ public class QustionCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        hideDialog();
+                        hideProgressDialog();
 
                         listGroups();
                     }

@@ -60,6 +60,8 @@ import io.reactivex.schedulers.Schedulers;
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION = 262;
+    private static final int REQ_SELECT_WORD_FILE = 11;
+    private static final int REQ_SELECT_IMAGES_FILE = 22;
     @BindView(R.id.btn_load_file)
     Button mBtnLoadFile;
     @BindView(R.id.btn_upload_word)
@@ -72,16 +74,18 @@ public class MainActivity extends BaseActivity {
     Button mBtnUploadWordImage;
     @BindView(R.id.btn_show_word_info)
     Button mBtnShowWordInfo;
-    @BindView(R.id.tv_path)
+    @BindView(R.id.tv_word_file_path)
     TextView mTvPath;
+    @BindView(R.id.tv_question_file_path)
+    TextView mTvQuestionFilePath;
+    @BindView(R.id.btn_upload_questions_images)
+    Button mBtnUploadQuestionsImages;
     //解析文件获取单词列表
     private List<Word> mWordListFile;
     //解析文件获取的同时保留练习信息，点击上传练习时再整合成Qustion
     private List<WordLoad> mWordLoadList = new ArrayList<>();
-    private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
-            + File.separator + "wordManagement" + File.separator;
-    private String wordFilePath = BASE_PATH + "一下1-80.txt";
-    private String mWordImagesDir = BASE_PATH + "一下1-30-all";
+    private String wordFilePath;
+    private String mWordImagesDir;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
     private SimpleDateFormat mSdf = new SimpleDateFormat("HH:mm:ss:SSS", Locale.getDefault());
@@ -106,7 +110,6 @@ public class MainActivity extends BaseActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
         setTitle("解析并上传单词");
-        showPath();
         requestPermission();
         listAll();
         listAllQuestions();
@@ -114,17 +117,9 @@ public class MainActivity extends BaseActivity {
         mOssTokenInfo = app.getOssTokenInfo();
     }
 
-    private void showPath() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("单词文件：");
-        stringBuilder.append(new File(wordFilePath).getName());
-        stringBuilder.append("\n");
-        stringBuilder.append("单词图片目录：");
-        stringBuilder.append(new File(mWordImagesDir).getName());
-        mTvPath.setText(stringBuilder.toString());
-    }
-
     private void listAllQuestions() {
+        showProgressDialog("加载中，请稍后...");
+
         ApiClient.getInstance()
                 .listAllQuestions()
                 .subscribe(new Observer<ResultListInfo<Question>>() {
@@ -142,11 +137,13 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onError(Throwable e) {
                         Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
+                        hideProgressDialog();
                     }
 
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "listAllQuestions--onComplete");
+                        hideProgressDialog();
                     }
                 });
     }
@@ -162,12 +159,12 @@ public class MainActivity extends BaseActivity {
 
         File file = new File(path);
         if (!file.exists()) {
-            showDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
+            showProgressDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
             return;
         }
 
         if (mWordListFile == null || mWordListFile.isEmpty()) {
-            showDialog("请先解析文档，获取wordList");
+            showProgressDialog("请先解析文档，获取wordList");
             return;
         }
 
@@ -201,12 +198,13 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onNext(ResultListInfo<Word> wordResultListInfo) {
                         mListAllWordsRelease = wordResultListInfo.getData();
-                        showDialog("listAll size=" + mListAllWordsRelease.size());
+//                        showProgressDialog("listAll size=" + mListAllWordsRelease.size());
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        showDialog("listAll onError=" + e.getMessage());
+                        Log.d(TAG, "onError: e " + e.getMessage());
+//                        showProgressDialog("listAll onError=" + e.getMessage());
                     }
 
                     @Override
@@ -312,6 +310,10 @@ public class MainActivity extends BaseActivity {
     }
 
     private List<Word> loadFile(String path) {
+        if (TextUtils.isEmpty(path)) {
+            showProgressDialog("请选择文件！");
+            return null;
+        }
         mWordLoadList.clear();
         List<Word> wordList = new ArrayList<>();
         File file = new File(path);
@@ -541,10 +543,17 @@ public class MainActivity extends BaseActivity {
         return wordList;
     }
 
-    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images,
+    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images, R.id.btn_select_word_file,
+            R.id.btn_select_questions_images_file,
             R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
     public void onViewClicked(View view) {
         switch (view.getId()) {
+            case R.id.btn_select_word_file:
+                FileSelectorActivity.startForResult(this, REQ_SELECT_WORD_FILE);
+                break;
+            case R.id.btn_select_questions_images_file:
+                FileSelectorActivity.startForResult(this, REQ_SELECT_IMAGES_FILE);
+                break;
             case R.id.btn_load_file:
                 mWordListFile = loadFile(wordFilePath);
                 mBtnLoadFile.setEnabled(false);
@@ -562,7 +571,7 @@ public class MainActivity extends BaseActivity {
                 }
                 break;
             case R.id.btn_upload_questions_images:
-                uploadQustionsImages("");
+                uploadQustionsImages(mWordImagesDir);
                 break;
             case R.id.btn_upload_questions:
                 if (checkWordList()) {
@@ -586,12 +595,21 @@ public class MainActivity extends BaseActivity {
     }
 
     private void uploadQustionsImages(String path) {
+        if (TextUtils.isEmpty(path)) {
+            showProgressDialog("请选择图片目录！");
+            return;
+        }
 
+        File fileImages = new File(path);
+        if (!fileImages.exists() || !fileImages.isDirectory()) {
+            showProgressDialog("图片目录错误！" + fileImages.getName());
+            return;
+        }
     }
 
     private List<Question> createQustions() {
         if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
-            showDialog("No ListAllWords!");
+            showProgressDialog("No ListAllWords!");
             return null;
         }
 
@@ -849,7 +867,7 @@ public class MainActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        showDialog("上传完成！" +
+                        showProgressDialog("上传完成！" +
                                 "\n共：" + updateWordTotalNumber +
                                 "\n跳过：" + updateWordSkipNumber +
                                 "\n失败：" + updateWordFailedNumber);
@@ -865,12 +883,12 @@ public class MainActivity extends BaseActivity {
     private void uploadQustions(List<Question> questions) {
 
         if (mQuestionListRelease == null || mQuestionListRelease.isEmpty()) {
-            showDialog("No mQuestionListRelease!");
+            showProgressDialog("No mQuestionListRelease!");
             return;
         }
 
         if (questions == null || questions.isEmpty()) {
-            showDialog("No questions!");
+            showProgressDialog("No questions!");
             return;
         }
 
@@ -922,7 +940,7 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "uploadQustions--onComplete");
-                        showDialog("上传练习完成！" +
+                        showProgressDialog("上传练习完成！" +
                                 "\n共：" + uploadQuestionTotalNumber +
                                 "\n跳过：" + uploadQuestionSkipedNumber);
                     }
@@ -931,7 +949,7 @@ public class MainActivity extends BaseActivity {
 
     boolean checkWordList() {
         if (mWordListFile == null || mWordListFile.isEmpty()) {
-            showDialog("请先解析文件，获取WordList");
+            showProgressDialog("请先解析文件，获取WordList");
             return false;
         }
         return true;
@@ -966,4 +984,35 @@ public class MainActivity extends BaseActivity {
                 .show();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK) {
+            Toast.makeText(this, "未选择", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        switch (requestCode) {
+            case REQ_SELECT_WORD_FILE:
+                String pathWord = data.getStringExtra(Intent.EXTRA_TEXT);
+                File fileWord = new File(pathWord);
+                if (!fileWord.exists() || !fileWord.isFile()) {
+                    showProgressDialog("文件不存在，或者不是文件：" + fileWord.getName());
+                    return;
+                }
+                wordFilePath = pathWord;
+                mTvPath.setText("单词文件：" + fileWord.getName());
+                break;
+            case REQ_SELECT_IMAGES_FILE:
+                String pathImages = data.getStringExtra(Intent.EXTRA_TEXT);
+                File fileImages = new File(pathImages);
+                if (!fileImages.exists() || !fileImages.isDirectory()) {
+                    showProgressDialog("文件不存在，或者不是目录：" + fileImages.getName());
+                    return;
+                }
+                mWordImagesDir = pathImages;
+                mTvQuestionFilePath.setText("图片目录：" + fileImages.getName());
+                break;
+        }
+    }
 }

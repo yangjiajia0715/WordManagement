@@ -7,6 +7,7 @@ import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.alibaba.sdk.android.oss.ClientException;
@@ -47,21 +48,29 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     }
 
-    void showDialog() {
+    void showProgressDialog(){
+        showProgressDialog(null);
+    }
+
+    void showProgressDialog(String msg) {
         if (mProgressDialog == null) {
             mProgressDialog = new ProgressDialog(this);
-            mProgressDialog.setMessage("加载中，请稍后");
+            if (TextUtils.isEmpty(msg)) {
+                mProgressDialog.setMessage("加载中，请稍后");
+            } else {
+                mProgressDialog.setMessage(msg);
+            }
         }
         mProgressDialog.show();
     }
 
-    void hideDialog() {
+    void hideProgressDialog() {
         if (mProgressDialog != null) {
             mProgressDialog.hide();
         }
     }
 
-    void showDialog(String msg) {
+    void showAlertDialog(String msg) {
         new AlertDialog.Builder(this)
                 .setMessage(msg)
                 .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
@@ -76,13 +85,13 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     void uploadFile(String path, OSSCompletedCallback<PutObjectRequest, PutObjectResult> completedCallback) {
         if (mOssTokenInfo == null || mOss == null) {
-            showDialog("mOssTokenInfo or mOss不存在");
+            showProgressDialog("mOssTokenInfo or mOss不存在");
             return;
         }
 
         final File file = new File(path);
         if (!file.exists()) {
-            showDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
+            showProgressDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
             return;
         }
 

@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.yangj.wordmangementandroid.R;
@@ -19,6 +20,7 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 /**
  * Created by yangjiajia on 2018/6/22.
@@ -28,6 +30,10 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
     ListView mListView;
     List<String> mDatas = new ArrayList<>();
     List<String> mDatasShow = new ArrayList<>();
+    @BindView(R.id.tv_select_tips)
+    TextView mTvSelectTips;
+    @BindView(R.id.tv_select_count)
+    TextView mTvSelectCount;
     private ArrayAdapter<String> mAdapter;
     private String mCurPath;
 
@@ -42,6 +48,7 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
         setContentView(R.layout.activity_file_selector);
         ButterKnife.bind(this);
         setTitle("文件选择器");
+        mTvSelectTips.setText("长按选择，返回即可！");
         initView();
         initData();
     }
@@ -59,7 +66,7 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
     void initData() {
         File file = new File(BASE_PATH);
         if (!file.exists()) {
-            showDialog("根目录不存在：" + file.getName());
+            showProgressDialog("根目录不存在：" + file.getName());
             return;
         }
 
@@ -79,6 +86,8 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
             mDatasShow.add(file1.getName());
         }
         mAdapter.notifyDataSetChanged();
+
+        mTvSelectCount.setText("共" + mDatasShow.size() + "条数据");
 
         File fileBase = new File(BASE_PATH);
         File fileCur = new File(mCurPath);
@@ -126,5 +135,9 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
         }
 
 
+    }
+
+    @OnClick(R.id.tv_select_count)
+    public void onViewClicked() {
     }
 }

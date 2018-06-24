@@ -8,14 +8,24 @@
     tools:context=".activitiy.MainActivity">
 
     <TextView
-        android:id="@+id/tv_path"
+        android:id="@+id/tv_word_file_path"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="请选择单词文件！"
+        android:textSize="15sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_select_word_file"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="选择单词文件" />
 
         <Button
             android:id="@+id/btn_load_file"
@@ -29,8 +39,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:visibility="gone"
-            android:text="上传单词图片" />
+            android:text="上传单词图片"
+            android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_upload_word"
@@ -40,10 +50,25 @@
             android:text="上传单词" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tv_question_file_path"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="请选择图片文件！"
+        android:textSize="15sp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_select_questions_images_file"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="选择图片目录" />
 
         <Button
             android:id="@+id/btn_upload_questions_images"
@@ -58,14 +83,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="上传练习" />
-
-        <Button
-            android:id="@+id/btn_show_word_info"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="单词信息" />
     </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_show_word_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="单词信息" />
 
     <TextView
         android:layout_width="match_parent"
