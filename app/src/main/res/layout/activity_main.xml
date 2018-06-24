@@ -89,7 +89,7 @@
         android:id="@+id/btn_show_word_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="单词信息" />
+        android:text="解析出的单词信息" />
 
     <TextView
         android:layout_width="match_parent"

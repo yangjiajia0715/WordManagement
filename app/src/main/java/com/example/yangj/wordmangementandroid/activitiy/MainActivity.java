@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
@@ -34,11 +33,7 @@ import com.example.yangj.wordmangementandroid.common.WordLoad;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 import com.example.yangj.wordmangementandroid.util.QuestionType2Chinese;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -309,243 +304,13 @@ public class MainActivity extends BaseActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private List<Word> loadFile(String path) {
-        if (TextUtils.isEmpty(path)) {
-            showProgressDialog("请选择文件！");
-            return null;
-        }
-        mWordLoadList.clear();
-        List<Word> wordList = new ArrayList<>();
-        File file = new File(path);
-        Log.d(TAG, "loadFile: wordFilePath=" + path);
-        if (!file.exists()) {
-            Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
-            return wordList;
-        }
 
-        BufferedReader bufferedReader = null;
-        try {
-            FileReader fileReader = new FileReader(file);
-            bufferedReader = new BufferedReader(fileReader);
-            String line = null;
-            List<String> lines = new ArrayList<>();
-            StringBuilder stringBuilder = new StringBuilder();
-            while ((line = bufferedReader.readLine()) != null) {
-//                line = line.trim();
-                Log.d(TAG, "loadFile: line=" + line);
-
-                if (!TextUtils.isEmpty(line)) {
-                    String twoChar = line.substring(0, 2);
-                    //第一行 开始
-                    if (TextUtils.isDigitsOnly(twoChar)) {
-                        Word word = new Word();
-                        WordLoad wordLoad = new WordLoad();
-                        //空行 为分隔符
-                        if (lines.size() == 6) {
-                            for (int i = 0; i < lines.size(); i++) {
-                                String lineStr = lines.get(i).trim();//trim
-                                switch (i) {
-                                    case 0:
-                                        word.id = Integer.parseInt(lineStr.substring(0, 2));
-                                        int index0 = lineStr.lastIndexOf(" ");
-                                        Log.d(TAG, "loadFile: lineStr=" + lineStr.length() + "--" + lineStr);
-                                        Log.d(TAG, "loadFile: lineStr index0=" + index0);
-                                        word.setEnglishSpell(lineStr.substring(2, index0).trim());//trim
-                                        word.setMeaning(lineStr.substring(index0, lineStr.length()).trim());//trim
-                                        word.setChineseSpell(word.getMeaning());
-
-                                        wordLoad.word = word.getEnglishSpell();
-                                        stringBuilder.append("\n");
-                                        stringBuilder.append(word.id);
-                                        stringBuilder.append(" ");
-                                        stringBuilder.append(word.getEnglishSpell());
-                                        stringBuilder.append("---");
-                                        stringBuilder.append(word.getChineseSpell());
-                                        stringBuilder.append("\n");
-                                        break;
-                                    case 1://例句0
-                                        int index1 = lineStr.lastIndexOf("例句0：");
-                                        if (index1 >= 0) {
-                                            word.setExampleSentence(lineStr.substring("例句0：".length(), lineStr.length()).trim());
-                                            stringBuilder.append(word.getExampleSentence());
-                                            stringBuilder.append("\n");
-                                        } else {
-                                            word.setExampleSentence(lineStr.trim());
-                                            stringBuilder.append(word.getExampleSentence());
-                                            stringBuilder.append("\n");
-                                        }
-                                        break;
-                                    case 2://中文干扰项1
-                                        String errorMeaning = lineStr.substring("中文干扰项1：".length(), lineStr.length());
-                                        wordLoad.wordChineseWrong = errorMeaning;
-//                                        stringBuilder.append("errorMeaning=");
-                                        stringBuilder.append(errorMeaning);
-                                        stringBuilder.append("\n");
-                                        break;
-                                    case 3://英文干扰项3
-                                        String engWrong = lineStr.substring("英文干扰项3：".length(), lineStr.length()).trim();
-                                        wordLoad.wordEnglishWrong = engWrong;
-                                        stringBuilder.append(engWrong);
-                                        stringBuilder.append("\n");
-                                        break;
-                                    case 4://分割正确项2
-                                        int index3 = lineStr.lastIndexOf("分割正确项2：");
-                                        if (index3 >= 0) {
-                                            String lineRight = lineStr.substring("分割正确项2：".length(), lineStr.length()).trim();
-
-                                            String[] split = lineRight.split(" ");
-                                            List<String> rightOptions = new ArrayList<>();
-                                            for (String s : split) {
-                                                s = s.trim();
-                                                if (!TextUtils.isEmpty(s)) {
-                                                    rightOptions.add(s);
-                                                }
-                                            }
-                                            wordLoad.rightOptions = rightOptions;
-                                            stringBuilder.append(lineRight);
-                                            stringBuilder.append("\n");
-                                        }
-                                        break;
-                                    case 5://分割干扰项4
-                                        String splitError = lineStr.substring("分割干扰项4：".length(), lineStr.length()).trim();
-                                        String[] split = splitError.split(" ");
-
-                                        List<String> wrongOptions1 = new ArrayList<>();
-                                        List<String> wrongOptions2 = new ArrayList<>();
-
-                                        for (String s : split) {
-                                            s = s.trim();
-                                            if (!TextUtils.isEmpty(s.trim())) {
-                                                if (wrongOptions1.size() < 2) {
-                                                    wrongOptions1.add(s);
-                                                } else {
-                                                    wrongOptions2.add(s);
-                                                }
-                                            }
-                                        }
-
-                                        wordLoad.wrongOption1 = wrongOptions1;
-                                        wordLoad.wrongOption2 = wrongOptions2;
-
-                                        stringBuilder.append(splitError);
-                                        stringBuilder.append("\n");
-                                        break;
-                                }
-                            }
-                            mWordLoadList.add(wordLoad);
-                            wordList.add(word);
-                        } else {
-                            Log.e(TAG, "loadFile: error 没有空格 id=" + word.id);
-                            stringBuilder.append("-----error 没有空格------id=");
-                            stringBuilder.append(word.id);
-                            stringBuilder.append("  getEnglishSpell=");
-                            stringBuilder.append(word.getEnglishSpell());
-                            stringBuilder.append("\n");
-                        }
-                        //else
-
-                        lines.clear();
-                    }
-                    lines.add(line);
-                }
-
-            }
-            mSvLog.setText(stringBuilder.toString());
-            Toast.makeText(this, "读取成功！", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (bufferedReader != null) {
-                try {
-                    bufferedReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return wordList;
-    }
-
-    /**
-     * 老的文档平铺
-     */
-    private List<Word> loadFileFlat() {
-        List<Word> wordList = new ArrayList<>();
-        String path = Environment.getExternalStorageDirectory().getPath()
-                + File.separator + "wordManagement" + File.separator + "two_up.txt";
-        File file = new File(path);
-        File fileOutPut = new File(file.getParentFile(), "two_up_output.txt");
-        Log.d(TAG, "loadFile: wordFilePath=" + path);
-        Log.d(TAG, "loadFile: file=" + file);
-        if (!file.exists()) {
-            Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
-            return wordList;
-        }
-        BufferedReader bufferedReader = null;
-        StringBuilder stringBuffer = new StringBuilder();
-        try {
-            FileReader fileReader = new FileReader(file);
-            bufferedReader = new BufferedReader(fileReader);
-            String line = null;
-
-            fileOutPut.createNewFile();
-            FileWriter fileWriter = new FileWriter(fileOutPut);
-            int lineNum = 0;
-            while ((line = bufferedReader.readLine()) != null) {
-//                line = line.trim();
-                Log.d(TAG, "loadFile: line=" + line);
-
-
-                String twoChar = line.substring(0, 2);
-                if (TextUtils.isDigitsOnly(twoChar)) {
-                    fileWriter.write(line);
-                    fileWriter.write("\n");
-                    stringBuffer.append(line);
-                    stringBuffer.append("\n");
-                } else {
-                    int indexOf = line.indexOf("英文干扰项");
-                    if (indexOf == -1) {
-                        indexOf = line.indexOf("分割干扰项");
-                    }
-                    if (indexOf != -1) {
-                        String substring = line.substring(0, indexOf);
-                        String substring1 = line.substring(indexOf);
-
-                        fileWriter.write(substring);
-                        fileWriter.write("\n");
-
-                        stringBuffer.append(substring);
-                        stringBuffer.append("\n");
-
-                        fileWriter.write(substring1);
-                        fileWriter.write("\n");
-
-                        stringBuffer.append(substring1);
-                        stringBuffer.append("\n");
-                    }
-
-                }
-                fileWriter.flush();
-            }
-            mSvLog.setText(stringBuffer.toString());
-            Toast.makeText(this, "读取成功！", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (bufferedReader != null) {
-                try {
-                    bufferedReader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return wordList;
-    }
-
-    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images, R.id.btn_select_word_file,
+    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images,
+            R.id.btn_select_word_file,
             R.id.btn_select_questions_images_file,
-            R.id.btn_upload_word, R.id.btn_upload_questions, R.id.btn_show_word_info})
+            R.id.btn_upload_word,
+            R.id.btn_upload_questions,
+            R.id.btn_show_word_info})
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_select_word_file:
@@ -555,8 +320,12 @@ public class MainActivity extends BaseActivity {
                 FileSelectorActivity.startForResult(this, REQ_SELECT_IMAGES_FILE);
                 break;
             case R.id.btn_load_file:
-                mWordListFile = loadFile(wordFilePath);
-                mBtnLoadFile.setEnabled(false);
+                List<WordLoad> wordLoadList = new ArrayList<>();
+                mWordListFile = parseFile(wordFilePath, wordLoadList);
+                if (mWordListFile != null && !mWordListFile.isEmpty()) {
+                    showAlertDialog("解析成功！\n共：" + mWordListFile.size() + "个单词");
+                    mBtnLoadFile.setEnabled(false);
+                }
                 break;
             case R.id.btn_upload_word:
                 if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
@@ -582,13 +351,46 @@ public class MainActivity extends BaseActivity {
             case R.id.btn_show_word_info:
                 if (checkWordList()) {
                     StringBuilder stringBuilder = new StringBuilder();
+                    stringBuilder.append("共");
+                    stringBuilder.append(mWordListFile.size());
+                    stringBuilder.append("个单词！");
+                    stringBuilder.append("\n");
+                    stringBuilder.append("都有单词、释意和例句！");
+                    stringBuilder.append("\n\n");
+                    boolean complete = true;
                     for (int i = 0; i < mWordListFile.size(); i++) {
                         Word word = mWordListFile.get(i);
-                        word.id = i;
+                        word.id = i + 1;
                         stringBuilder.append(word.toString());
                         stringBuilder.append("\n\n");
+
+                        String wordSpell = word.getEnglishSpell();
+                        wordSpell = wordSpell.replaceAll(" ", "");
+                        wordSpell = wordSpell.replaceAll("-", "");
+                        boolean matches = wordSpell.matches("^[a-zA-Z]*");
+                        if (!matches) {
+                            showAlertDialog("请检查单词拼写" + word.getEnglishSpell());
+                            complete = false;
+                            break;
+                        }
+                        if (TextUtils.isEmpty(word.getExampleSentence())) {
+                            showAlertDialog("单词" + word.getEnglishSpell() + "没有例句");
+                            complete = false;
+                            break;
+                        }
+
+                        if (TextUtils.isEmpty(word.getMeaning())) {
+                            showAlertDialog("单词" + word.getEnglishSpell() + "没有释意");
+                            complete = false;
+                            break;
+                        }
+
+
                     }
-                    WordListInfoActivity.start(this, stringBuilder.toString());
+
+                    if (complete) {
+                        WordListInfoActivity.start(this, stringBuilder.toString());
+                    }
                 }
                 break;
         }
@@ -596,13 +398,13 @@ public class MainActivity extends BaseActivity {
 
     private void uploadQustionsImages(String path) {
         if (TextUtils.isEmpty(path)) {
-            showProgressDialog("请选择图片目录！");
+            showAlertDialog("请选择图片目录！");
             return;
         }
 
         File fileImages = new File(path);
         if (!fileImages.exists() || !fileImages.isDirectory()) {
-            showProgressDialog("图片目录错误！" + fileImages.getName());
+            showAlertDialog("图片目录错误！" + fileImages.getName());
             return;
         }
     }
@@ -867,7 +669,7 @@ public class MainActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        showProgressDialog("上传完成！" +
+                        showAlertDialog("上传完成！" +
                                 "\n共：" + updateWordTotalNumber +
                                 "\n跳过：" + updateWordSkipNumber +
                                 "\n失败：" + updateWordFailedNumber);
@@ -949,7 +751,8 @@ public class MainActivity extends BaseActivity {
 
     boolean checkWordList() {
         if (mWordListFile == null || mWordListFile.isEmpty()) {
-            showProgressDialog("请先解析文件，获取WordList");
+            showAlertDialog("请先解析文件！");
+//            showAlertDialog("请先解析文件，获取WordList");
             return false;
         }
         return true;
