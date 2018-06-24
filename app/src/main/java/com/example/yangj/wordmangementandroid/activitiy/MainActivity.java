@@ -265,6 +265,10 @@ public class MainActivity extends BaseActivity {
                     Toast.makeText(this, "No qustions!", Toast.LENGTH_SHORT).show();
                     return true;
                 }
+                strBuilderQ.append("共");
+                strBuilderQ.append(qustions.size());
+                strBuilderQ.append("题");
+                strBuilderQ.append("\n\n");
 
                 int lastWordId = -1;
                 int indexQ = 0;
@@ -272,6 +276,9 @@ public class MainActivity extends BaseActivity {
                     int wordId = qustion.getWordId();
                     if (lastWordId != -1) {
                         if (lastWordId != wordId) {
+//                            strBuilderQ.append("------------------以上为单词wordId:");
+//                            strBuilderQ.append(wordId);
+//                            strBuilderQ.append("的Qustions------------------index=");
                             strBuilderQ.append("------------------index=");
                             strBuilderQ.append(indexQ);
                             indexQ++;
@@ -280,9 +287,11 @@ public class MainActivity extends BaseActivity {
                     }
                     lastWordId = wordId;
 
+                    strBuilderQ.append("wordId: ");
                     strBuilderQ.append(qustion.getWordId());
                     strBuilderQ.append("\n");
                     //to chinese
+                    strBuilderQ.append("题型：");
                     strBuilderQ.append(QuestionType2Chinese.getChinese(qustion.getType()));
                     strBuilderQ.append("\n");
                     List<String> options = qustion.getOptions();
@@ -320,8 +329,8 @@ public class MainActivity extends BaseActivity {
                 FileSelectorActivity.startForResult(this, REQ_SELECT_IMAGES_FILE);
                 break;
             case R.id.btn_load_file:
-                List<WordLoad> wordLoadList = new ArrayList<>();
-                mWordListFile = parseFile(wordFilePath, wordLoadList);
+                mWordLoadList.clear();
+                mWordListFile = parseFile(wordFilePath, mWordLoadList);
                 if (mWordListFile != null && !mWordListFile.isEmpty()) {
                     showAlertDialog("解析成功！\n共：" + mWordListFile.size() + "个单词");
                     mBtnLoadFile.setEnabled(false);
@@ -411,7 +420,7 @@ public class MainActivity extends BaseActivity {
 
     private List<Question> createQustions() {
         if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
-            showProgressDialog("No ListAllWords!");
+            showAlertDialog("No ListAllWords!");
             return null;
         }
 
@@ -422,6 +431,7 @@ public class MainActivity extends BaseActivity {
                 Word wordRelease = mListAllWordsRelease.get(j);
                 //每个单词10道题，
                 if (TextUtils.equals(wordLoad.word, wordRelease.getEnglishSpell())) {
+                    //MATCH_WORD_MEANING 词意关联
                     //CHOOSE_WORD_BY_LISTEN_SENTENCE：听文选词
                     //SPELL_WORD_BY_READ_IMAGE 看图拼写
                     //SPELL_WORD_BY_LISTEN_WORD 听词拼写
@@ -456,7 +466,7 @@ public class MainActivity extends BaseActivity {
                     }
                     questionMatchMeaning.setAnswersIndex(answerMatchMeaning);
                     questionMatchMeaning.setOptions(optionsMatchMeaning);
-                    if (optionsMatchMeaning.size() != 2) {//校验
+                    if (optionsMatchMeaning.size() == 2) {//校验
                         questionList.add(questionMatchMeaning);//add
                     }
 
@@ -685,12 +695,12 @@ public class MainActivity extends BaseActivity {
     private void uploadQustions(List<Question> questions) {
 
         if (mQuestionListRelease == null || mQuestionListRelease.isEmpty()) {
-            showProgressDialog("No mQuestionListRelease!");
+            showAlertDialog("No mQuestionListRelease!");
             return;
         }
 
         if (questions == null || questions.isEmpty()) {
-            showProgressDialog("No questions!");
+            showAlertDialog("No questions!");
             return;
         }
 

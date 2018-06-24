@@ -3,11 +3,11 @@ package com.example.yangj.wordmangementandroid.activitiy;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +25,7 @@ import com.example.yangj.wordmangementandroid.common.Question;
 import com.example.yangj.wordmangementandroid.common.QuestionTitle;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
+import com.example.yangj.wordmangementandroid.common.WordLoad;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
 import java.io.BufferedReader;
@@ -42,6 +43,7 @@ import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
@@ -58,6 +60,8 @@ import okhttp3.ResponseBody;
  */
 public class UpdateWordActivity extends BaseActivity {
     private static final String TAG = "UpdateWordActivity";
+    private static final int REQ_SELECT_AUDIO_IMAGE_DIR = 11;
+    private static final int REQ_SELECT_WORD_FILE = 12;
 
     @BindView(R.id.btn_upload_audio)
     Button mBtnUploadAudio;
@@ -67,6 +71,16 @@ public class UpdateWordActivity extends BaseActivity {
     Button mBtnUpdateWord;
     @BindView(R.id.tv_preview)
     TextView mTvPreview;
+    @BindView(R.id.tv_audio_and_images_dir)
+    TextView mTvAudioAndImagesDir;
+    @BindView(R.id.btn_select_audio_and_images_dir)
+    Button mBtnSelectAudioAndImagesDir;
+    @BindView(R.id.tv_parse_file_path)
+    TextView mTvParseFilePath;
+    @BindView(R.id.btn_select_word_file)
+    Button mBtnSelectWordFile;
+    @BindView(R.id.btn_upload_word_image)
+    Button mBtnUploadWordImage;
 
     private int uploadAudioSkipNumber = 0;
     private int uploadAudioTotalNumber = 0;
@@ -76,19 +90,13 @@ public class UpdateWordActivity extends BaseActivity {
     private int uploadWordSkipNumber = 0;
     private int uploadWordFailedNumber = 0;
 
+    private int needUploadWordTotalNumber = 0;
+    private int needUploadWordUnCompelteNumber = 0;
+
     private int uploadAudioWordNotFoundNumber = 0;
 
-    private static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
-            + File.separator + "wordManagement" + File.separator;
-    private String wordFilePath = BASE_PATH + "一下1-80.txt";
     //一上 资源汇总31-94 ,音频已上传，单词已更新 2018-6-21 20:08:39
-//    private String mWordAudioDir = BASE_PATH + "一上 资源汇总31-94";//2018-6-21 20:08:39
-    private String mWordAudioDir = BASE_PATH ;
-//    private String mWordImagesDir = BASE_PATH + "一下资源汇总32-87";
-//    private String mWordImagesDir = BASE_PATH + "一上 资源汇总31-94";
-    private String mWordImagesDir = BASE_PATH + "test";
-//    private String mWordImagesDir = BASE_PATH + "oneDown32-87b";
-//    private String mWordImagesDir = BASE_PATH;
+    private String mWordAudioAndImagesDir;
     private String mWordSentencePath = BASE_PATH + "一上31-94新例句.txt";
     private List<Word> mListAllWords;
 
@@ -118,19 +126,27 @@ public class UpdateWordActivity extends BaseActivity {
     }
 
     @OnClick({R.id.btn_upload_audio, R.id.btn_preview, R.id.btn_update_word
+            , R.id.btn_select_audio_and_images_dir
+            , R.id.btn_select_word_file
             , R.id.btn_load_sentence, R.id.btn_update_questions, R.id.btn_update_questions_api
             , R.id.btn_upload_word_image})
     public void onViewClicked(View view) {
         switch (view.getId()) {
+            case R.id.btn_select_word_file:
+                FileSelectorActivity.startForResult(this, REQ_SELECT_WORD_FILE);
+                break;
+            case R.id.btn_select_audio_and_images_dir:
+                FileSelectorActivity.startForResult(this, REQ_SELECT_AUDIO_IMAGE_DIR);
+                break;
             case R.id.btn_upload_audio:
-                uploadAudios(mWordAudioDir);
+                uploadAudios(mWordAudioAndImagesDir);
                 break;
             case R.id.btn_load_sentence:
-                showProgressDialog("注意：只能解析仅仅有一个例句的文件");
-                loadFile(mWordSentencePath);
+                showAlertDialog("注意：只能解析仅仅有一个例句的文件");
+                loadFileOnlySentence(mWordSentencePath);
                 break;
             case R.id.btn_preview:
-                preview();
+                previewNeedUpdateWord();
                 break;
             case R.id.btn_update_word:
                 updateWords();
@@ -142,7 +158,7 @@ public class UpdateWordActivity extends BaseActivity {
                 updateQustionsApi();
                 break;
             case R.id.btn_upload_word_image:
-                uploadWordImages(mWordImagesDir);
+                uploadWordImages(mWordAudioAndImagesDir);
                 break;
         }
     }
@@ -157,24 +173,28 @@ public class UpdateWordActivity extends BaseActivity {
      */
     private void uploadWordImages(String imagePath) {
         needUploadWords.clear();
+        if (TextUtils.isEmpty(imagePath)) {
+            showAlertDialog("请先指定图片目录！");
+            return;
+        }
         File file = new File(imagePath);
         if (!file.exists()) {
-            showProgressDialog("目录不存在：" + file.getPath());
+            showAlertDialog("目录不存在：" + file.getPath());
             return;
         }
 
-        if (file.listFiles() == null) {
-            showProgressDialog("空目录：" + file.getPath());
+        File[] listFiles = file.listFiles();
+        if (listFiles == null || listFiles.length == 0) {
+            showAlertDialog("空目录：" + file.getPath());
             return;
         }
 
-        File[] files = file.listFiles();
-        for (File file1 : files) {
+        for (File file1 : listFiles) {
             String file1Name = file1.getName();
             Log.d(TAG, "uploadWordImages: getName=" + file1Name);
         }
 
-        Observable.fromArray(file.listFiles())
+        Observable.fromArray(listFiles)
                 .concatMap(new Function<File, ObservableSource<File>>() {
                     @Override
                     public ObservableSource<File> apply(File file) {
@@ -194,7 +214,7 @@ public class UpdateWordActivity extends BaseActivity {
                                 || file.getName().contains("rect-right-pic-1");
                     }
                 })
-//                .take(2)
+//                .take(2)/////////////////////////////
                 .subscribe(new Observer<File>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -204,17 +224,19 @@ public class UpdateWordActivity extends BaseActivity {
                     @Override
                     public void onNext(File file) {
                         Log.d(TAG, "onNext: getName=" + file.getName());
-//                        uploadFile(file.getPath());
+                        uploadFile(file.getPath());
                     }
 
                     @Override
                     public void onError(Throwable e) {
                         Log.d(TAG, "onError: ");
+                        showAlertDialog("上传失败");
                     }
 
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "onComplete: ");
+                        showAlertDialog("上传成功");
                     }
                 });
 
@@ -301,7 +323,7 @@ public class UpdateWordActivity extends BaseActivity {
         }
     }
 
-    private void loadFile(String wordSentencePath) {
+    private void loadFileOnlySentence(String wordSentencePath) {
         File file = new File(wordSentencePath);
         if (!file.exists()) {
             Toast.makeText(this, "不存在", Toast.LENGTH_SHORT).show();
@@ -337,7 +359,7 @@ public class UpdateWordActivity extends BaseActivity {
                                 word.setExampleSentence(wordSentence);
                                 needUploadWords.add(word);
                                 total++;
-                                Log.d(TAG, "loadFile: word=" + wordLine + ",Sentence=" + wordSentence);
+                                Log.d(TAG, "loadFileOnlySentence: word=" + wordLine + ",Sentence=" + wordSentence);
                                 break;
                             }
                         }
@@ -347,7 +369,7 @@ public class UpdateWordActivity extends BaseActivity {
                 lines.add(line);
             }
         } catch (Exception e) {
-            Log.d(TAG, "loadFile: Exception=" + e.getMessage());
+            Log.d(TAG, "loadFileOnlySentence: Exception=" + e.getMessage());
         }
 
         showProgressDialog("共更新单词数：" + total);
@@ -355,13 +377,11 @@ public class UpdateWordActivity extends BaseActivity {
     }
 
     private void updateWords() {
-        if (needUploadWords == null) {
-            Toast.makeText(this, "空", Toast.LENGTH_SHORT).show();
+        if (needUploadWords == null || needUploadWords.isEmpty()) {
+            showAlertDialog("没有需要更新的单词！");
             return;
         }
-//        Word word = needUploadWords.get(0);
-//        needUploadWords = new ArrayList<>();
-//        needUploadWords.add(word);
+
         Observable.fromIterable(needUploadWords)
                 .distinct(new Function<Word, Integer>() {
                     @Override
@@ -399,321 +419,397 @@ public class UpdateWordActivity extends BaseActivity {
                     @Override
                     public void onError(Throwable e) {
                         Log.d(TAG, "updateWords--onError:getMessage =" + e.getMessage());
+                        showAlertDialog("更新单词失败：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        showProgressDialog("更新成功：共：" + uploadWordTotalNumber +
+                        showAlertDialog("更新单词成功：\n共：" + uploadWordTotalNumber +
                                 "\n失败：" + uploadAudioFailedNumber);
                     }
                 });
     }
 
-    private void preview() {
+    private void previewNeedUpdateWord() {
         mStringBuilder.setLength(0);
 
-        if (needUploadWords == null) {
-            Toast.makeText(this, "空", Toast.LENGTH_SHORT).show();
+        if (needUploadWords == null || needUploadWords.isEmpty()) {
+            showAlertDialog("没有需要更新的单词");
             return;
         }
-        Observable.fromIterable(needUploadWords)
+        needUploadWordTotalNumber = 0;
+        needUploadWordUnCompelteNumber = 0;
+        mStringBuilder.append("共");
+        Disposable disposable = Observable.fromIterable(needUploadWords)
                 .distinct(new Function<Word, Integer>() {
                     @Override
                     public Integer apply(Word word) {
                         return word.id;
                     }
                 })
-                .subscribe(new Observer<Word>() {
+                .subscribe(new Consumer<Word>() {
                     @Override
-                    public void onSubscribe(Disposable d) {
+                    public void accept(Word word) {
+                        needUploadWordTotalNumber++;
+                        if (!URLUtil.isNetworkUrl(word.getEnglishPronunciation())
+                                || !URLUtil.isNetworkUrl(word.getExampleSentenceAudio())
+                                || !URLUtil.isNetworkUrl(word.getImage())
+                                || !URLUtil.isNetworkUrl(word.getRectangleImage())) {
+                            needUploadWordUnCompelteNumber++;
 
-                    }
-
-                    @Override
-                    public void onNext(Word word) {
-                        mStringBuilder.append(word.toString());
-                        mStringBuilder.append("\n\n");
-                        Log.d(TAG, "onNext: word=" + word);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Toast.makeText(UpdateWordActivity.this, "error!", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        mTvPreview.setText(mStringBuilder.toString());
+                        }
                     }
                 });
-    }
+        mStringBuilder.append(needUploadWordTotalNumber);
+        mStringBuilder.append("个单词需要更新");
+        mStringBuilder.append("\n\n");
+        Observable.fromIterable(needUploadWords)
+                            .
 
+                    distinct(new Function<Word, Integer>() {
+                        @Override
+                        public Integer apply (Word word){
+                            return word.id;
+                        }
+                    })
+                            .
 
-    private void uploadAudios(String audioDir) {
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showProgressDialog("No mListAllWords!");
-            return;
-        }
+                    subscribe(new Observer<Word>() {
+                        @Override
+                        public void onSubscribe (Disposable d){
 
-        File audioFile = new File(audioDir);
-        if (!audioFile.exists() || !audioFile.isDirectory()) {
-            showProgressDialog("音频目录错误！audioDir=" + audioDir);
-            return;
-        }
+                        }
 
-        uploadAudioTotalNumber = 0;
-        uploadAudioFailedNumber = 0;
-        uploadAudioSkipNumber = 0;
-        uploadAudioWordNotFoundNumber = 0;
-        File[] files = audioFile.listFiles();
+                        @Override
+                        public void onNext (Word word){
+                            mStringBuilder.append(word.toString());
+                            mStringBuilder.append("\n\n");
+                            Log.d(TAG, "onNext: word=" + word);
+                        }
 
-        //校验是否是目录
-        boolean isRightDir = true;
-        for (File file : files) {
-            if (file.isDirectory()) {
-                File[] files1 = file.listFiles();
-                if (files1.length == 0) {
-                    Log.e(TAG, "uploadAudios: 空目录：" + file.getName());
+                        @Override
+                        public void onError (Throwable e){
+                            Toast.makeText(UpdateWordActivity.this, "error!", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onComplete () {
+                            WordListInfoActivity.start(UpdateWordActivity.this, mStringBuilder.toString());
+                        }
+                    });
                 }
-            } else {
-                isRightDir = false;
-                break;
+
+
+        private void uploadAudios (String audioDir){
+            if (TextUtils.isEmpty(audioDir)) {
+                showAlertDialog("请先指定音频目录！");
+                return;
             }
-        }
 
-        if (!isRightDir) {
-            showProgressDialog("音频目录错误！audioDir=" + audioDir);
-            return;
-        }
+            if (mListAllWords == null || mListAllWords.isEmpty()) {
+                showAlertDialog("No mListAllWords!");
+                return;
+            }
 
-        Observable.fromArray(files)
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        return file.listFiles().length > 0;
+            File audioFile = new File(audioDir);
+            if (!audioFile.exists() || !audioFile.isDirectory()) {
+                showAlertDialog("音频目录错误！audioDir=" + audioDir);
+                return;
+            }
+
+            uploadAudioTotalNumber = 0;
+            uploadAudioFailedNumber = 0;
+            uploadAudioSkipNumber = 0;
+            uploadAudioWordNotFoundNumber = 0;
+            File[] files = audioFile.listFiles();
+
+            //校验是否是目录
+            boolean isRightDir = true;
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    File[] files1 = file.listFiles();
+                    if (files1.length == 0) {
+                        Log.e(TAG, "uploadAudios: 空目录：" + file.getName());
                     }
-                })
-                .concatMap(new Function<File, ObservableSource<File>>() {
-                    @Override
-                    public ObservableSource<File> apply(final File file) {
-                        File[] mp3Files = file.listFiles();
-                        return Observable.fromArray(mp3Files);
-                    }
-                })
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        return file.getPath().endsWith("mp3");
-                    }
-                })
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean test(File file) {
-                        uploadAudioTotalNumber++;
-                        boolean wordExist = false;
-                        for (int i = mListAllWords.size() - 1; i >= 0; i--) {
-                            Word word = mListAllWords.get(i);
-                            String name = file.getName();
-                            name = name.substring(0, name.lastIndexOf("."));
-                            String spell = word.getEnglishSpell();
-                            //约定：hello.mp3, hello1.mp3
-                            if (TextUtils.equals(spell, name) || TextUtils.equals(spell + 1, name)) {
-                                wordExist = true;
-                                needUploadWords.add(word);
-                                break;
+                } else {
+                    isRightDir = false;
+                    break;
+                }
+            }
+
+            if (!isRightDir) {
+                showProgressDialog("音频目录错误！audioDir=" + audioDir);
+                return;
+            }
+
+            Observable.fromArray(files)
+                    .filter(new Predicate<File>() {
+                        @Override
+                        public boolean test(File file) {
+                            return file.listFiles().length > 0;
+                        }
+                    })
+                    .concatMap(new Function<File, ObservableSource<File>>() {
+                        @Override
+                        public ObservableSource<File> apply(final File file) {
+                            File[] mp3Files = file.listFiles();
+                            return Observable.fromArray(mp3Files);
+                        }
+                    })
+                    .filter(new Predicate<File>() {
+                        @Override
+                        public boolean test(File file) {
+                            return file.getPath().endsWith("mp3");
+                        }
+                    })
+                    .filter(new Predicate<File>() {
+                        @Override
+                        public boolean test(File file) {
+                            uploadAudioTotalNumber++;
+                            boolean wordExist = false;
+                            for (int i = mListAllWords.size() - 1; i >= 0; i--) {
+                                Word word = mListAllWords.get(i);
+                                String name = file.getName();
+                                name = name.substring(0, name.lastIndexOf("."));
+                                String spell = word.getEnglishSpell();
+                                //约定：hello.mp3, hello1.mp3
+                                if (TextUtils.equals(spell, name) || TextUtils.equals(spell + 1, name)) {
+                                    wordExist = true;
+                                    needUploadWords.add(word);
+                                    break;
+                                }
                             }
+
+                            if (!wordExist) {
+                                uploadAudioSkipNumber++;
+                            }
+                            Log.d(TAG, "uploadAudios--test: wordExist=" + wordExist + ",getName=" + file.getName());
+                            return wordExist;
+                        }
+                    })
+                    .subscribeOn(Schedulers.newThread())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Observer<File>() {
+                        @Override
+                        public void onSubscribe(Disposable d) {
+
                         }
 
-                        if (!wordExist) {
-                            uploadAudioSkipNumber++;
+                        @Override
+                        public void onNext(File file) {
+                            Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath());
+                            uploadFile(file.getPath());
                         }
-                        Log.d(TAG, "uploadAudios--test: wordExist=" + wordExist + ",getName=" + file.getName());
-                        return wordExist;
-                    }
-                })
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<File>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
 
-                    }
+                        @Override
+                        public void onError(Throwable e) {
+                            Log.d(TAG, "uploadAudios--onError: e=" + e.getMessage());
+                            uploadAudioFailedNumber++;
+                        }
 
-                    @Override
-                    public void onNext(File file) {
-                        Log.d(TAG, "uploadAudios--onNext: file=" + file.getPath());
-                        uploadFile(file.getPath());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d(TAG, "uploadAudios--onError: e=" + e.getMessage());
-                        uploadAudioFailedNumber++;
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        showProgressDialog("音频上传成功！"
-                                + "\n共：" + uploadAudioTotalNumber
-                                + "\n跳过：" + uploadAudioSkipNumber
-                                + "\n失败：" + uploadAudioFailedNumber);
-                    }
-                });
+                        @Override
+                        public void onComplete() {
+                            showProgressDialog("音频上传成功！"
+                                    + "\n共：" + uploadAudioTotalNumber
+                                    + "\n跳过：" + uploadAudioSkipNumber
+                                    + "\n失败：" + uploadAudioFailedNumber);
+                        }
+                    });
 
 //        uploadFile(audioDir);
-    }
-
-    private void listAllWord() {
-        ApiClient.getInstance()
-                .listAll()
-                .subscribe(new Observer<ResultListInfo<Word>>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(ResultListInfo<Word> wordResultListInfo) {
-                        mListAllWords = wordResultListInfo.getData();
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        showProgressDialog("listAll onError=" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        showProgressDialog("单词列表获取成功！共：" + mListAllWords.size());
-                    }
-                });
-    }
-
-
-    private void uploadFile(String path) {
-        if (mOssTokenInfo == null || mOss == null) {
-            showProgressDialog("mOssTokenInfo or mOss不存在");
-            return;
         }
 
-        final File file = new File(path);
-        if (!file.exists()) {
-            showProgressDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
-            return;
+        private void listAllWord () {
+            ApiClient.getInstance()
+                    .listAll()
+                    .subscribe(new Observer<ResultListInfo<Word>>() {
+                        @Override
+                        public void onSubscribe(Disposable d) {
+
+                        }
+
+                        @Override
+                        public void onNext(ResultListInfo<Word> wordResultListInfo) {
+                            mListAllWords = wordResultListInfo.getData();
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            showAlertDialog("listAll onError=" + e.getMessage());
+                        }
+
+                        @Override
+                        public void onComplete() {
+//                        showAlertDialog("单词列表获取成功！共：" + mListAllWords.size());
+                        }
+                    });
         }
 
-        if (mListAllWords == null || mListAllWords.isEmpty()) {
-            showProgressDialog("请先获取线上单词列表");
-            return;
-        }
+
+        private void uploadFile (String path){
+            if (mOssTokenInfo == null || mOss == null) {
+                showAlertDialog("mOssTokenInfo or mOss不存在");
+                return;
+            }
+
+            final File file = new File(path);
+            if (!file.exists()) {
+                showAlertDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
+                return;
+            }
+
+            if (mListAllWords == null || mListAllWords.isEmpty()) {
+                showAlertDialog("请先获取线上单词列表");
+                return;
+            }
 
 //        UUID uuid = UUID.randomUUID();
-        String objectKey = null;
-        if (file.getName().endsWith(".mp3")) {
-            objectKey = "courseware/audio/" + file.getName();
-        } else {
-            objectKey = "courseware/image/" + file.getName();
-        }
-        Log.d(TAG, "uploadFile: objectKey=" + objectKey);
+            String objectKey = null;
+            if (file.getName().endsWith(".mp3")) {
+                objectKey = "courseware/audio/" + file.getName();
+            } else {
+                objectKey = "courseware/image/" + file.getName();
+            }
+            Log.d(TAG, "uploadFile: objectKey=" + objectKey);
 
-        PutObjectRequest putObjectRequest = new PutObjectRequest(mOssTokenInfo.getBucket()
-                , objectKey, path);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(mOssTokenInfo.getBucket()
+                    , objectKey, path);
 
-        mOss.asyncPutObject(putObjectRequest, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
-            @Override
-            public void onSuccess(PutObjectRequest request, PutObjectResult result) {
-                String objectKey = request.getObjectKey();
-                String url = mOssTokenInfo.getCdnEndpoint() + "/" + objectKey;
-                String fileName = new File(objectKey).getName();
-                String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
-                fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1,egg-rect-right-pic-3
-                if ("mp3".equals(suffix)) {//mp3
-                    if (mListAllWords != null) {
-                        boolean find = false;
-                        for (int i = mListAllWords.size() - 1; i >= 0; i--) {
-                            Word word = mListAllWords.get(i);
-                            if (TextUtils.equals(word.getEnglishSpell(), fileName)) {
-                                find = true;
-                                word.setEnglishPronunciation(url);
-                                break;
-                            } else if (TextUtils.equals(word.getEnglishSpell() + 1, fileName)) {
-                                find = true;
-                                word.setExampleSentenceAudio(url);
-                                break;
+            mOss.asyncPutObject(putObjectRequest, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+                @Override
+                public void onSuccess(PutObjectRequest request, PutObjectResult result) {
+                    String objectKey = request.getObjectKey();
+                    String url = mOssTokenInfo.getCdnEndpoint() + "/" + objectKey;
+                    String fileName = new File(objectKey).getName();
+                    String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
+                    fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1,egg-rect-right-pic-3
+                    if ("mp3".equals(suffix)) {//mp3
+                        if (mListAllWords != null) {
+                            boolean find = false;
+                            for (int i = mListAllWords.size() - 1; i >= 0; i--) {
+                                Word word = mListAllWords.get(i);
+                                if (TextUtils.equals(word.getEnglishSpell(), fileName)) {
+                                    find = true;
+                                    word.setEnglishPronunciation(url);
+                                    break;
+                                } else if (TextUtils.equals(word.getEnglishSpell() + 1, fileName)) {
+                                    find = true;
+                                    word.setExampleSentenceAudio(url);
+                                    break;
+                                }
                             }
-                        }
 
-                        if (find) {
-                            Log.d(TAG, "uploadFile--onSuccess-find: objectKey=" + objectKey);
-                        } else {
-                            Log.e(TAG, "uploadFile--onSuccess-mWordListFile-not-find: objectKey=" + objectKey);
-                        }
+                            if (find) {
+                                Log.d(TAG, "uploadFile--onSuccess-find: objectKey=" + objectKey);
+                            } else {
+                                Log.e(TAG, "uploadFile--onSuccess-mWordListFile-not-find: objectKey=" + objectKey);
+                            }
 
-                    }
-                } else if ("png".equals(suffix)) {//image
-                    if (mListAllWords != null) {
-                        String wordSpell = fileName.substring(0, fileName.indexOf("-"));
-                        for (int i = mListAllWords.size() - 1; i >= 0; i--) {
-                            Word word = mListAllWords.get(i);
+                        }
+                    } else if ("png".equals(suffix)) {//image
+                        if (mListAllWords != null) {
+                            String wordSpell = fileName.substring(0, fileName.indexOf("-"));
+                            for (int i = mListAllWords.size() - 1; i >= 0; i--) {
+                                Word word = mListAllWords.get(i);
 //                            egg-rect-right-pic-3
 
-                            if (TextUtils.equals(word.getEnglishSpell().toLowerCase(), wordSpell.toLowerCase())) {
-                                if (fileName.contains("square-pic")) {
-                                    word.setImage(url);
-                                }
+                                if (TextUtils.equals(word.getEnglishSpell().toLowerCase(), wordSpell.toLowerCase())) {
+                                    if (fileName.contains("square-pic")) {
+                                        word.setImage(url);
+                                    }
 
-                                //默认取第一个
-                                if (fileName.contains("rect-right-pic-1")) {
-                                    word.setRectangleImage(url);
+                                    //默认取第一个
+                                    if (fileName.contains("rect-right-pic-1")) {
+                                        word.setRectangleImage(url);
+                                    }
+                                    needUploadWords.add(word);
+                                    break;
                                 }
-                                needUploadWords.add(word);
-                                break;
                             }
                         }
                     }
                 }
-            }
 
-            @Override
-            public void onFailure(PutObjectRequest request, ClientException clientException, ServiceException serviceException) {
-                Log.d(TAG, "onFailure: " + request.getObjectKey());
-            }
-        });
+                @Override
+                public void onFailure(PutObjectRequest request, ClientException clientException, ServiceException serviceException) {
+                    Log.d(TAG, "onFailure: " + request.getObjectKey());
+                }
+            });
 
-        try {
-            mOss.putObject(putObjectRequest);
-        } catch (ClientException e) {
-            e.printStackTrace();
-        } catch (ServiceException e) {
-            e.printStackTrace();
+            try {
+                mOss.putObject(putObjectRequest);
+            } catch (ClientException e) {
+                e.printStackTrace();
+            } catch (ServiceException e) {
+                e.printStackTrace();
+            }
         }
+
+
+        private void listAllQuestions () {
+            showProgressDialog();
+
+            ApiClient.getInstance()
+                    .listAllQuestions()
+                    .subscribe(new Observer<ResultListInfo<Question>>() {
+                        @Override
+                        public void onSubscribe(Disposable d) {
+
+                        }
+
+                        @Override
+                        public void onNext(ResultListInfo<Question> questionResultListInfo) {
+                            mQuestionListRelease = questionResultListInfo.getData();
+                            Log.d(TAG, "listAllQuestions--onNext: size=" + mQuestionListRelease.size());
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
+                            hideProgressDialog();
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            hideProgressDialog();
+                            Log.d(TAG, "listAllQuestions--onComplete");
+                        }
+                    });
+        }
+
+
+        @Override
+        protected void onActivityResult ( int requestCode, int resultCode, Intent data){
+            super.onActivityResult(requestCode, resultCode, data);
+            if (resultCode != RESULT_OK) {
+                Toast.makeText(this, "未选择", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            switch (requestCode) {
+                case REQ_SELECT_AUDIO_IMAGE_DIR:
+                    String audioAndImagePath = data.getStringExtra(Intent.EXTRA_TEXT);
+                    File fileWord = new File(audioAndImagePath);
+                    if (!fileWord.exists() || !fileWord.isDirectory()) {
+                        showProgressDialog("文件不存在，或者不是目录：" + fileWord.getName());
+                        return;
+                    }
+                    mWordAudioAndImagesDir = audioAndImagePath;
+                    mTvAudioAndImagesDir.setText("单词音频和图片所在的目录：" + fileWord.getName());
+                    break;
+                case REQ_SELECT_WORD_FILE:
+                    String pathWord = data.getStringExtra(Intent.EXTRA_TEXT);
+                    File file = new File(pathWord);
+                    if (!file.exists() || !file.isFile()) {
+                        showProgressDialog("文件不存在，或者不是文件：" + file.getName());
+                        return;
+                    }
+                    List<WordLoad> wordLoadListParse = new ArrayList<>();
+                    List<Word> wordListParsed = parseFile(pathWord, wordLoadListParse);
+
+                    mTvParseFilePath.setText("需要解析的单词文件：" + file.getName());
+                    break;
+            }
+        }
+
     }
-
-
-    private void listAllQuestions() {
-        ApiClient.getInstance()
-                .listAllQuestions()
-                .subscribe(new Observer<ResultListInfo<Question>>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(ResultListInfo<Question> questionResultListInfo) {
-                        mQuestionListRelease = questionResultListInfo.getData();
-                        Log.d(TAG, "listAllQuestions--onNext: size=" + mQuestionListRelease.size());
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d(TAG, "listAllQuestions--onNext e: " + e.getMessage());
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        Log.d(TAG, "listAllQuestions--onComplete");
-                    }
-                });
-    }
-}
