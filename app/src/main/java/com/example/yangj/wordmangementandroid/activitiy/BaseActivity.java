@@ -33,8 +33,8 @@ import java.util.List;
  * Created by yangjiajia on 2018/6/22.
  */
 public abstract class BaseActivity extends AppCompatActivity {
-    private OSS mOss;
-    private OssTokenInfo mOssTokenInfo;
+    OSS mOss;
+    OssTokenInfo mOssTokenInfo;
     private ProgressDialog mProgressDialog;
     private static final String TAG = "BaseActivity";
     static final String BASE_PATH = Environment.getExternalStorageDirectory().getPath()
@@ -329,7 +329,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                         String rightSplit = line.substring("分割正确项2：".length(), line.length()).trim();
                         String[] split = rightSplit.split(" ");
 
-                        int count1= 0;
+                        int count1 = 0;
                         for (String s : split) {
                             if (!TextUtils.isEmpty(s)) {
                                 count1++;
@@ -348,7 +348,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                         }
                         String errorSplit = line.substring("分割正确项2：".length(), line.length()).trim();
                         String[] split2 = errorSplit.split(" ");
-                        int count2= 0;
+                        int count2 = 0;
                         for (String s : split2) {
                             if (!TextUtils.isEmpty(s)) {
                                 count2++;

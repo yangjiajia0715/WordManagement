@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -91,8 +92,11 @@ public class MainActivity extends BaseActivity {
     private int uploadQuestionTotalNumber = 0;
     private int uploadQuestionSkipedNumber = 0;
 
+    private int uploadImagesTotalNumber = 0;
+
     private List<Word> mListAllWordsRelease;
     private List<Question> mQuestionListRelease;
+    private List<Question> mQuestionListOnlyImages;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, MainActivity.class);
@@ -261,56 +265,121 @@ public class MainActivity extends BaseActivity {
             case R.id.option_show_questions:
                 StringBuilder strBuilderQ = new StringBuilder();
                 List<Question> qustions = createQustions();
-                if (qustions == null || qustions.isEmpty()) {
-                    Toast.makeText(this, "No qustions!", Toast.LENGTH_SHORT).show();
-                    return true;
+                if (buildQustionsInfo(strBuilderQ, qustions)) {
+                    WordListInfoActivity.start(this, strBuilderQ.toString());
                 }
-                strBuilderQ.append("共");
-                strBuilderQ.append(qustions.size());
-                strBuilderQ.append("题");
-                strBuilderQ.append("\n\n");
 
-                int lastWordId = -1;
-                int indexQ = 0;
-                for (Question qustion : qustions) {
-                    int wordId = qustion.getWordId();
-                    if (lastWordId != -1) {
-                        if (lastWordId != wordId) {
-//                            strBuilderQ.append("------------------以上为单词wordId:");
-//                            strBuilderQ.append(wordId);
-//                            strBuilderQ.append("的Qustions------------------index=");
-                            strBuilderQ.append("------------------index=");
-                            strBuilderQ.append(indexQ);
-                            indexQ++;
-                        }
-                        strBuilderQ.append("\n");
-                    }
-                    lastWordId = wordId;
-
-                    strBuilderQ.append("wordId: ");
-                    strBuilderQ.append(qustion.getWordId());
-                    strBuilderQ.append("\n");
-                    //to chinese
-                    strBuilderQ.append("题型：");
-                    strBuilderQ.append(QuestionType2Chinese.getChinese(qustion.getType()));
-                    strBuilderQ.append("\n");
-                    List<String> options = qustion.getOptions();
-                    for (String option : options) {
-                        strBuilderQ.append(option);
-                        strBuilderQ.append("--");
-                    }
-                    strBuilderQ.append("\n");
-                    List<Integer> answersIndex = qustion.getAnswersIndex();
-                    for (Integer integer : answersIndex) {
-                        strBuilderQ.append(integer);
-                        strBuilderQ.append("--");
-                    }
-                    strBuilderQ.append("\n");
-                }
-                WordListInfoActivity.start(this, strBuilderQ.toString());
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private boolean buildQustionsInfo(StringBuilder strBuilderQ, List<Question> qustions) {
+        if (qustions == null || qustions.isEmpty()) {
+            showAlertDialog("No qustions!");
+            return false;
+        }
+
+        strBuilderQ.append("共");
+        strBuilderQ.append(qustions.size());
+        strBuilderQ.append("题");
+        strBuilderQ.append("\n\n");
+
+        int unCompleteCount = 0;
+        for (Question question : qustions) {
+            if (question.getType().equals(Question.Type.MATCH_WORD_IMAGE)) {
+                if (question.getOptions().size() != 3) {
+                    strBuilderQ.append("wordId=");
+                    strBuilderQ.append(question.getWordId());
+                    strBuilderQ.append(" 词图关联 不够3张图片！");
+                    strBuilderQ.append("\n");
+                    unCompleteCount++;
+                }
+            }
+
+            if (question.getType().equals(Question.Type.CHOOSE_IMAGE_BY_LISTEN_WORD)) {
+                boolean complete = true;
+                if (question.getOptions().size() != 2) {
+                    strBuilderQ.append("wordId=");
+                    strBuilderQ.append(question.getWordId());
+                    strBuilderQ.append(" 词图关联 不够2张图片！");
+                    strBuilderQ.append("\n");
+                    complete = false;
+                }
+
+                List<Integer> answersIndex = question.getAnswersIndex();
+                if (answersIndex == null || answersIndex.size() != 1) {
+                    strBuilderQ.append("wordId=");
+                    strBuilderQ.append(question.getWordId());
+                    strBuilderQ.append(" 听词选图 没答案！！");
+                    strBuilderQ.append("\n");
+                    complete = false;
+                }
+
+                if (!complete) {
+                    unCompleteCount++;
+                }
+            }
+        }
+
+        strBuilderQ.append("不完整的练习数：");
+        strBuilderQ.append(unCompleteCount);
+        strBuilderQ.append("\n");
+        strBuilderQ.append("==================================");
+        strBuilderQ.append("\n");
+
+        int lastWordId = -1;
+        int indexQ = 0;
+        for (Question qustion : qustions) {
+            int wordId = qustion.getWordId();
+            if (lastWordId != -1) {
+                if (lastWordId != wordId) {
+                    strBuilderQ.append("------------------index=");
+                    strBuilderQ.append(indexQ);
+                    indexQ++;
+                }
+                strBuilderQ.append("\n");
+            }
+            lastWordId = wordId;
+
+            strBuilderQ.append("wordId: ");
+            strBuilderQ.append(qustion.getWordId());
+            strBuilderQ.append("\n");
+            //to chinese
+            strBuilderQ.append("题型：");
+            strBuilderQ.append(QuestionType2Chinese.getChinese(qustion.getType()));
+            strBuilderQ.append("\n");
+            List<String> options = qustion.getOptions();
+            if (options != null && options.size() > 0) {
+                int tempIndex = 0;
+                for (String option : options) {
+                    strBuilderQ.append("选项");
+                    strBuilderQ.append(++tempIndex);
+                    strBuilderQ.append(": ");
+                    strBuilderQ.append(option);
+                    strBuilderQ.append("\n");
+                }
+            } else {
+                strBuilderQ.append("没选项======");
+            }
+
+            strBuilderQ.append("\n");
+
+            List<Integer> answersIndex = qustion.getAnswersIndex();
+            if (answersIndex != null && answersIndex.size() == 1) {
+                strBuilderQ.append("答案:");
+                for (Integer integer : answersIndex) {
+                    strBuilderQ.append(((char) ('A' + integer)));
+                    strBuilderQ.append(" ");
+                }
+                strBuilderQ.append("\n");
+            } else {
+                strBuilderQ.append("没答案================");
+            }
+
+            strBuilderQ.append("\n");
+        }
+        return true;
     }
 
 
@@ -318,6 +387,8 @@ public class MainActivity extends BaseActivity {
             R.id.btn_select_word_file,
             R.id.btn_select_questions_images_file,
             R.id.btn_upload_word,
+            R.id.btn_upload_questions_only_Images_preview,
+            R.id.btn_upload_questions_only_Images,
             R.id.btn_upload_questions,
             R.id.btn_show_word_info})
     public void onViewClicked(View view) {
@@ -355,6 +426,24 @@ public class MainActivity extends BaseActivity {
                 if (checkWordList()) {
                     List<Question> questionList = createQustions();
                     uploadQustions(questionList);
+                }
+                break;
+            case R.id.btn_upload_questions_only_Images:
+                if (mQuestionListOnlyImages == null || mQuestionListOnlyImages.isEmpty()) {
+                    showAlertDialog("没有练习！");
+                    return;
+                }
+                uploadQustions(mQuestionListOnlyImages);
+                break;
+            case R.id.btn_upload_questions_only_Images_preview:
+                StringBuilder strBuilderQ = new StringBuilder();
+                if (mQuestionListOnlyImages == null || mQuestionListOnlyImages.isEmpty()) {
+                    showAlertDialog("请先上传图片！");
+                    return;
+                }
+
+                if (buildQustionsInfo(strBuilderQ, mQuestionListOnlyImages)) {
+                    WordListInfoActivity.start(this, strBuilderQ.toString());
                 }
                 break;
             case R.id.btn_show_word_info:
@@ -411,10 +500,247 @@ public class MainActivity extends BaseActivity {
             return;
         }
 
-        File fileImages = new File(path);
-        if (!fileImages.exists() || !fileImages.isDirectory()) {
-            showAlertDialog("图片目录错误！" + fileImages.getName());
+        if (mWordListFile == null || mWordListFile.isEmpty()) {
+            showAlertDialog("请先解析文件");
             return;
+        }
+
+        if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
+            showAlertDialog("No mListAllWordsRelease！");
+            return;
+        }
+
+        //预习 和 听词选图
+        mQuestionListOnlyImages = new ArrayList<>(mWordListFile.size() * 2);
+
+        for (Word word : mWordListFile) {
+            int wordId = 0;
+            for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
+                Word word1 = mListAllWordsRelease.get(i);
+                if (word.getEnglishSpell().equalsIgnoreCase(word1.getEnglishSpell())) {
+                    wordId = word1.id;
+                    word.setRectangleImage(word1.getRectangleImage());
+                    word.setImage(word1.getImage());
+                    break;
+                }
+            }
+
+            if (wordId == 0) {
+                showAlertDialog("预创建questions失败！wordId == 0,word=" + word.getEnglishSpell());
+                return;
+            }
+
+            //用于填充数据！
+            String rectangleImage = word.getRectangleImage();
+            if (!URLUtil.isNetworkUrl(rectangleImage)) {
+                showAlertDialog("单词：" + word.getEnglishSpell() + " 没有矩形图片！");
+                return;
+            }
+
+            //用于填充数据！
+            String image = word.getImage();
+            if (!URLUtil.isNetworkUrl(image)) {
+                showAlertDialog("单词：" + word.getEnglishSpell() + " 没有正方形图片！");
+                return;
+            }
+
+            Question questionMatch = new Question();
+            questionMatch.setWordId(wordId);
+            questionMatch.setType(Question.Type.MATCH_WORD_IMAGE);
+            questionMatch.setOptions(new ArrayList<String>(3));
+//            mQuestionListOnlyImages.add(questionMatch);//////////////////temp
+
+            Question questionChoose = new Question();
+            questionChoose.setWordId(wordId);
+            questionChoose.setType(Question.Type.CHOOSE_IMAGE_BY_LISTEN_WORD);
+            ArrayList<String> options = new ArrayList<>(2);
+            options.add(rectangleImage);
+            questionChoose.setOptions(options);
+            mQuestionListOnlyImages.add(questionChoose);
+        }
+
+        File fileDir = new File(path);
+        if (!fileDir.exists() || !fileDir.isDirectory()) {
+            showAlertDialog("图片目录错误！" + fileDir.getName());
+            return;
+        }
+
+        File[] listFiles = fileDir.listFiles();
+        if (listFiles == null || listFiles.length == 0) {
+            showAlertDialog("空目录！" + fileDir.getName());
+            return;
+        }
+
+        if (mWordListFile == null || mWordListFile.isEmpty()) {
+            showAlertDialog("请先解析文件！");
+            return;
+        }
+        uploadImagesTotalNumber = 0;
+
+        showProgressDialog("图片上传中...");
+
+        Observable.fromArray(listFiles)
+                .concatMap(new Function<File, ObservableSource<File>>() {
+                    @Override
+                    public ObservableSource<File> apply(File file) {
+                        return Observable.fromArray(file.listFiles());
+                    }
+                })
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+                        return file.getName().endsWith(".png");
+                    }
+                })
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean test(File file) {
+//                        return file.getName().contains("-rect-");/////////tmp
+                        return file.getName().contains("rect-wrong-pic");
+                    }
+                })
+//                .take(10)///////////temp
+                .subscribe(new Observer<File>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(File file) {
+                        Log.d(TAG, "onNext: getName=" + file.getName());
+                        uploadImagesTotalNumber++;
+
+                        uploadQustionFile(file.getPath());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "onError: ");
+                        hideProgressDialog();
+                        showAlertDialog("上传图片失败！");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "onComplete: ");
+                        hideProgressDialog();
+                        showAlertDialog("上传图片成功!\n共" + uploadImagesTotalNumber + "张");
+                    }
+                });
+
+    }
+
+    private void uploadQustionFile(String path) {
+        if (mOssTokenInfo == null || mOss == null) {
+            showAlertDialog("mOssTokenInfo or mOss不存在");
+            return;
+        }
+
+        File file = new File(path);
+        if (!file.exists()) {
+            showAlertDialog("file 不存在 name=" + file.getName() + "\nwordFilePath=" + file.getPath());
+            return;
+        }
+
+        if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
+            showAlertDialog("请先获取线上单词列表");
+            return;
+        }
+
+//        UUID uuid = UUID.randomUUID();
+        String objectKey = null;
+        if (file.getName().endsWith(".mp3")) {
+            objectKey = "courseware/audio/" + file.getName();
+        } else {
+            objectKey = "courseware/image/" + file.getName();
+        }
+        Log.d(TAG, "uploadQustionFile: objectKey=" + objectKey);
+
+        PutObjectRequest putObjectRequest = new PutObjectRequest(mOssTokenInfo.getBucket()
+                , objectKey, path);
+
+        mOss.asyncPutObject(putObjectRequest, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
+            @Override
+            public void onSuccess(PutObjectRequest request, PutObjectResult result) {
+                String objectKey = request.getObjectKey();
+                String url = mOssTokenInfo.getCdnEndpoint() + "/" + objectKey;
+                String fileName = new File(objectKey).getName();
+                String suffix = fileName.substring(fileName.indexOf(".") + 1, fileName.length());
+                fileName = fileName.substring(0, fileName.indexOf("."));//eg. cow, cow1,egg-rect-right-pic-3
+                Log.d(TAG, "uploadQustionFile--onSuccess: fileName=" + fileName);
+                if ("png".equals(suffix)) {//image
+                    if (mListAllWordsRelease != null) {
+                        String wordSpell = fileName.substring(0, fileName.indexOf("-rect-"));
+                        Word word = null;
+                        for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
+                            Word wordI = mListAllWordsRelease.get(i);
+                            if (TextUtils.equals(wordI.getEnglishSpell().toLowerCase(), wordSpell.toLowerCase())) {
+                                word = wordI;
+                                break;
+                            }
+                        }
+
+                        if (word == null || word.id <= 0) {
+                            Log.e(TAG, "uploadQustionFile 返回: " + wordSpell);
+                            return;
+                        }
+
+                        int index = 0;
+                        for (Question question : mQuestionListOnlyImages) {
+                            index++;
+                            if (question.getWordId() == word.id) {
+                                if (fileName.contains("-rect-right-pic-") && question.getType().equals(Question.Type.MATCH_WORD_IMAGE)) {
+                                    question.getOptions().add(url);
+                                }
+
+//                                table-rect-wrong-pic,随机生成答案
+                                if (fileName.contains("rect-wrong-pic") && question.getType().equals(Question.Type.CHOOSE_IMAGE_BY_LISTEN_WORD)) {
+                                    question.getOptions().add(url);
+                                    List<String> options = question.getOptions();
+                                    if (options.size() == 2) {
+                                        List<String> optionsNew = new ArrayList<>();
+                                        if (index % 2 == 0) {
+                                            optionsNew.addAll(options);
+                                        } else {
+                                            for (int i = options.size() - 1; i >= 0; i--) {
+                                                optionsNew.add(options.get(i));//倒置
+                                            }
+                                        }
+
+                                        List<Integer> answerList = new ArrayList<>();
+                                        for (int i = 0; i < optionsNew.size(); i++) {
+                                            String opt = optionsNew.get(i);
+                                            if (opt.contains("rect-right-pic")) {
+                                                answerList.add(i);
+                                                break;
+                                            }
+                                        }
+
+                                        question.setOptions(optionsNew);
+                                        question.setAnswersIndex(answerList);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(PutObjectRequest request, ClientException clientException, ServiceException serviceException) {
+                Log.d(TAG, "onFailure: " + request.getObjectKey());
+            }
+        });
+
+        try {
+            mOss.putObject(putObjectRequest);
+        } catch (ClientException e) {
+            e.printStackTrace();
+        } catch (ServiceException e) {
+            e.printStackTrace();
         }
     }
 
@@ -723,6 +1049,29 @@ public class MainActivity extends BaseActivity {
                         return !isAlreadyExist;
                     }
                 })
+                .filter(new Predicate<Question>() {
+                    @Override
+                    public boolean test(Question question) {
+                        boolean right = true;
+                        List<String> options = question.getOptions();
+                        List<Integer> answersIndex = question.getAnswersIndex();
+                        switch (question.getType()) {
+                            case MATCH_WORD_IMAGE:
+                                right = options != null && options.size() == 3;
+                                break;
+                            case CHOOSE_IMAGE_BY_LISTEN_WORD:
+                                right = options != null && options.size() == 2;
+                                if (right) {
+                                    right = answersIndex != null && answersIndex.size() == 1;
+                                }
+                                break;
+                        }
+                        if (!right) {
+                            uploadQuestionSkipedNumber++;
+                        }
+                        return right;
+                    }
+                })
                 .concatMap(new Function<Question, ObservableSource<ResultBeanInfo<Question>>>() {
                     @Override
                     public ObservableSource<ResultBeanInfo<Question>> apply(Question question) {
@@ -730,7 +1079,6 @@ public class MainActivity extends BaseActivity {
                                 .createQuestion(question);
                     }
                 })
-                .takeLast(1)////////////////////////////////////
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ResultBeanInfo<Question>>() {
@@ -752,7 +1100,7 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "uploadQustions--onComplete");
-                        showProgressDialog("上传练习完成！" +
+                        showAlertDialog("上传练习完成！" +
                                 "\n共：" + uploadQuestionTotalNumber +
                                 "\n跳过：" + uploadQuestionSkipedNumber);
                     }

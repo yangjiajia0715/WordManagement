@@ -439,7 +439,6 @@ public class UpdateWordActivity extends BaseActivity {
         }
         needUploadWordTotalNumber = 0;
         needUploadWordUnCompelteNumber = 0;
-        mStringBuilder.append("共");
         Disposable disposable = Observable.fromIterable(needUploadWords)
                 .distinct(new Function<Word, Integer>() {
                     @Override
@@ -456,10 +455,15 @@ public class UpdateWordActivity extends BaseActivity {
                                 || !URLUtil.isNetworkUrl(word.getImage())
                                 || !URLUtil.isNetworkUrl(word.getRectangleImage())) {
                             needUploadWordUnCompelteNumber++;
-
+                            mStringBuilder.append(word.id);
+                            mStringBuilder.append(" ");
+                            mStringBuilder.append(word.getEnglishSpell());
+                            mStringBuilder.append(" 信息不全：音频、图片");
+                            mStringBuilder.append("\n");
                         }
                     }
                 });
+        mStringBuilder.append("共");
         mStringBuilder.append(needUploadWordTotalNumber);
         mStringBuilder.append("个单词需要更新");
         mStringBuilder.append("\n\n");

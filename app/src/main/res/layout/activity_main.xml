@@ -50,6 +50,12 @@
             android:text="上传单词" />
     </LinearLayout>
 
+    <Button
+        android:id="@+id/btn_upload_questions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="上传非图片练习" />
+
     <TextView
         android:id="@+id/tv_question_file_path"
         android:layout_width="match_parent"
@@ -78,12 +84,18 @@
             android:text="上传练习图片" />
 
         <Button
-            android:id="@+id/btn_upload_questions"
+            android:id="@+id/btn_upload_questions_only_Images_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="上传练习" />
+            android:text="预览练习-仅带图片" />
     </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_upload_questions_only_Images"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="上传练习OnlyImages" />
 
     <Button
         android:id="@+id/btn_show_word_info"
