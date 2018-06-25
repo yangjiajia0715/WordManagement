@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -82,12 +83,50 @@ public class WordCheckActivity extends BaseActivity {
         }
 
         StringBuilder sb = new StringBuilder();
+        StringBuilder sbTemp = new StringBuilder();
         for (Word word : wordList) {
+            sbTemp.setLength(0);
+            sbTemp.append(word.getEnglishSpell());
+            sbTemp.append(" Id:");
+            sbTemp.append(word.id);
+            boolean isComplete = true;
             String spell = word.getEnglishSpell();
+            if (spell.length() != spell.trim().length()) {
+                isComplete = false;
+                sbTemp.append("单词首尾含有空格！");
+            }
+
             String meaning = word.getMeaning();
+            if (TextUtils.isEmpty(meaning)) {
+                isComplete = false;
+                sbTemp.append("没有释义");
+                sbTemp.append("\n");
+            }
+
             String sentence = word.getExampleSentence();
+            if (TextUtils.isEmpty(sentence)) {
+                isComplete = false;
+                sbTemp.append("没有释义");
+                sbTemp.append("\n");
+            }
+
             String pronunciation = word.getEnglishPronunciation();
+            if (TextUtils.isEmpty(pronunciation)) {
+                isComplete = false;
+                sbTemp.append("没有单词发音");
+                sbTemp.append("\n");
+            }
+
             String sentenceAudio = word.getExampleSentenceAudio();
+            if (TextUtils.isEmpty(sentenceAudio)) {
+                isComplete = false;
+                sbTemp.append("没有例句发音");
+                sbTemp.append("\n");
+            }
+
+            if (!isComplete) {
+                sb.append(sbTemp.toString());
+            }
         }
         mTvCheckWordResult.setText(sb.toString());
     }
