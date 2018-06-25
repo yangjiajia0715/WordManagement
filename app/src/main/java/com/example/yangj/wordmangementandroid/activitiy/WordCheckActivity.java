@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -89,11 +90,13 @@ public class WordCheckActivity extends BaseActivity {
             sbTemp.append(word.getEnglishSpell());
             sbTemp.append(" Id:");
             sbTemp.append(word.id);
+            sbTemp.append("\n");
             boolean isComplete = true;
             String spell = word.getEnglishSpell();
             if (spell.length() != spell.trim().length()) {
                 isComplete = false;
                 sbTemp.append("单词首尾含有空格！");
+                sbTemp.append("\n");
             }
 
             String meaning = word.getMeaning();
@@ -124,9 +127,24 @@ public class WordCheckActivity extends BaseActivity {
                 sbTemp.append("\n");
             }
 
+            String image = word.getImage();
+            if (!URLUtil.isNetworkUrl(image)) {
+                isComplete = false;
+                sbTemp.append("没有正方形图片");
+                sbTemp.append("\n");
+            }
+
+            String rectangleImage = word.getRectangleImage();
+            if (!URLUtil.isNetworkUrl(rectangleImage)) {
+                isComplete = false;
+                sbTemp.append("没有长方形图片");
+                sbTemp.append("\n");
+            }
+
             if (!isComplete) {
                 sb.append(sbTemp.toString());
             }
+            sbTemp.append("\n");
         }
         mTvCheckWordResult.setText(sb.toString());
     }
