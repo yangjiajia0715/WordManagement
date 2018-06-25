@@ -548,7 +548,7 @@ public class MainActivity extends BaseActivity {
             questionMatch.setWordId(wordId);
             questionMatch.setType(Question.Type.MATCH_WORD_IMAGE);
             questionMatch.setOptions(new ArrayList<String>(3));
-//            mQuestionListOnlyImages.add(questionMatch);//////////////////temp
+            mQuestionListOnlyImages.add(questionMatch);//////////////////temp
 
             Question questionChoose = new Question();
             questionChoose.setWordId(wordId);
@@ -595,8 +595,8 @@ public class MainActivity extends BaseActivity {
                 .filter(new Predicate<File>() {
                     @Override
                     public boolean test(File file) {
-//                        return file.getName().contains("-rect-");/////////tmp
-                        return file.getName().contains("rect-wrong-pic");
+                        return file.getName().contains("-rect-");
+//                        return file.getName().contains("rect-wrong-pic");/////////tmp
                     }
                 })
 //                .take(10)///////////temp

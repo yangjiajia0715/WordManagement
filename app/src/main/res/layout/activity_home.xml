@@ -17,6 +17,12 @@
         android:text="检查练习是否完整" />
 
     <Button
+        android:id="@+id/btn_word_check"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="检查单词是否完整" />
+
+    <Button
         android:id="@+id/btn_upload_question"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
