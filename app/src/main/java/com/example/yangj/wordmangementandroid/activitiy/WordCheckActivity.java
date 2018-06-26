@@ -15,20 +15,30 @@ import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+import okhttp3.ResponseBody;
 
 /**
  * Created by yangjiajia on 2018/6/25.
  */
 public class WordCheckActivity extends BaseActivity {
     private static final String TAG = "WordCheckActivity";
-    
+    private int uploadWordTotalNumber = 0;
+    private int uploadWordFailNumber = 0;
+
     @BindView(R.id.btn_word_check)
     Button mBtnWordCheck;
     @BindView(R.id.tv_check_word_result)
@@ -47,7 +57,6 @@ public class WordCheckActivity extends BaseActivity {
         ButterKnife.bind(this);
         listAll();
     }
-
 
     private void listAll() {
         ApiClient.getInstance()
@@ -85,10 +94,11 @@ public class WordCheckActivity extends BaseActivity {
 
         StringBuilder sb = new StringBuilder();
         StringBuilder sbTemp = new StringBuilder();
+        int index = 0;
         for (Word word : wordList) {
             sbTemp.setLength(0);
             sbTemp.append(word.getEnglishSpell());
-            sbTemp.append(" Id:");
+            sbTemp.append("  Id:");
             sbTemp.append(word.id);
             sbTemp.append("\n");
             boolean isComplete = true;
@@ -142,15 +152,84 @@ public class WordCheckActivity extends BaseActivity {
             }
 
             if (!isComplete) {
+                index++;
                 sb.append(sbTemp.toString());
+                sbTemp.append("\n");
+                sb.append("-----------index:");
+                sb.append(index);
+                sb.append("\n");
+                sb.append("\n");
             }
-            sbTemp.append("\n");
         }
         mTvCheckWordResult.setText(sb.toString());
     }
 
-
     @OnClick(R.id.btn_word_check)
     public void onViewClicked() {
+//        trim();
     }
+
+    /**
+     * 去掉首尾空格
+     */
+    private void trim() {
+        List<Word> needUpdate = new ArrayList<>();
+        for (Word word : mWordList) {
+            String spell = word.getEnglishSpell();
+            if (spell.length() != spell.trim().length()) {
+                word.setEnglishSpell(spell.trim());
+                needUpdate.add(word);
+            }
+        }
+
+        Observable.fromIterable(needUpdate)
+                .distinct(new Function<Word, Integer>() {
+                    @Override
+                    public Integer apply(Word word) {
+                        Log.d(TAG, "updateWords--apply: word=" + word.getEnglishSpell());
+                        return word.id;
+                    }
+                })
+                .concatMap(new Function<Word, ObservableSource<ResponseBody>>() {
+                    @Override
+                    public ObservableSource<ResponseBody> apply(Word word) {
+                        return ApiClient.getInstance().updateWord(word);
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<ResponseBody>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResponseBody responseBody) {
+                        uploadWordTotalNumber++;
+                        Log.d(TAG, "updateWords--onNext: =");
+                        try {
+                            String string = responseBody.string();
+                            Log.d(TAG, "updateWords--onNext: =" + string);
+                        } catch (IOException e) {
+                            uploadWordFailNumber++;
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        uploadWordFailNumber++;
+                        Log.d(TAG, "updateWords--onError:getMessage =" + e.getMessage());
+//                        showAlertDialog("更新单词失败：" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        showAlertDialog("更新单词成功：\n共：" + uploadWordTotalNumber +
+                                "\n失败：" + uploadWordFailNumber);
+                    }
+                });
+    }
+
+
 }

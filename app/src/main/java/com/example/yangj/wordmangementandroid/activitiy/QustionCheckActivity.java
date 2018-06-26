@@ -11,6 +11,7 @@ import android.widget.TextView;
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.Question;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
+import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class QustionCheckActivity extends BaseActivity {
     private StringBuilder mStringBuilder = new StringBuilder();
     private int mWordId1Count;
     List<GroupedObservable<Integer, Question>> groups = new ArrayList<>();
+    private List<Word> mWordList;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, QustionCheckActivity.class);
@@ -54,6 +56,35 @@ public class QustionCheckActivity extends BaseActivity {
         setContentView(R.layout.activity_question_check);
         ButterKnife.bind(this);
         listAllQuestions();
+        listAll();
+    }
+
+    private void listAll() {
+        ApiClient.getInstance()
+                .listAll()
+                .subscribe(new Observer<ResultListInfo<Word>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResultListInfo<Word> wordResultListInfo) {
+                        mWordList = wordResultListInfo.getData();
+//                        showProgressDialog("listAll size=" + mListAllWordsRelease.size());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "onError: e " + e.getMessage());
+//                        showProgressDialog("listAll onError=" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
     }
 
     private void listAllQuestions() {
@@ -131,7 +162,8 @@ public class QustionCheckActivity extends BaseActivity {
     private void listGroups() {
         Log.d(TAG, "listGroups--size: " + groups.size());
 
-        Observable.interval(10, TimeUnit.MILLISECONDS)
+        //2200  5*200=1000ms
+        Observable.interval(5, TimeUnit.MILLISECONDS)
                 .map(new Function<Long, GroupedObservable<Integer, Question>>() {
                     @Override
                     public GroupedObservable<Integer, Question> apply(Long aLong) {
@@ -160,7 +192,7 @@ public class QustionCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        mTvCheckQuestionResult.setText(mStringBuilder.toString());
+
                     }
                 });
     }
@@ -177,11 +209,6 @@ public class QustionCheckActivity extends BaseActivity {
         public void onNext(T t) {
             Question question = (Question) t;
             mQuestions.add(t);
-            Log.d(TAG, "listGroups--onNext: " + question.getWordId());
-            mStringBuilder.append(question.getWordId());
-            mStringBuilder.append(" ");
-            mStringBuilder.append(question.getType());
-            mStringBuilder.append("\n");
         }
 
         @Override
@@ -192,19 +219,40 @@ public class QustionCheckActivity extends BaseActivity {
         @Override
         public void onComplete() {
             Log.d(TAG, "listGroups--onNext: " + mQuestions.size());
-
             if (mQuestions.size() != 10) {
                 Question question = (Question) mQuestions.get(0);
+
+                mStringBuilder.append("wordId:");
                 mStringBuilder.append(question.getWordId());
                 mStringBuilder.append(" ");
-                mStringBuilder.append(question.getType());
+                Word word = null;
+                if (mWordList != null) {
+                    for (Word item : mWordList) {
+                        if (item.id == question.getWordId()) {
+                            word = item;
+                            break;
+                        }
+                    }
+                }
+                if (word != null) {
+                    mStringBuilder.append(word.getEnglishSpell());
+                }
+                mStringBuilder.append(" ");
+                if (mQuestions.size() > 10) {
+                    mStringBuilder.append("多余10个练习");
+                } else {
+                    mStringBuilder.append("少于10个练习");
+                }
+//                mStringBuilder.append(question.getType());
                 mStringBuilder.append("\n");
-                mStringBuilder.append("练习题：");
-                mStringBuilder.append(mQuestions.size());
-                mStringBuilder.append("--------------");
+                mStringBuilder.append("\n");
             }
-            mStringBuilder.append("\n");
-            mStringBuilder.append("\n");
+            mTvCheckQuestionResult.setText(mStringBuilder.toString());
+//            Log.d(TAG, "listGroups--onNext: " + question.getWordId());
+//            mStringBuilder.append(question.getWordId());
+//            mStringBuilder.append(" ");
+//            mStringBuilder.append(question.getType());
+//            mStringBuilder.append("\n");
         }
     }
 }
