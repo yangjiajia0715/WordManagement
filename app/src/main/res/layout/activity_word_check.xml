@@ -10,6 +10,11 @@
         android:layout_height="wrap_content"
         android:text="检查单词是否完整：拼写、音频、图片等" />
 
+    <Button
+        android:id="@+id/btn_word_check_update_uncomplete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="更新不完整的单词" />
 
     <ScrollView
         android:layout_width="match_parent"

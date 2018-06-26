@@ -412,7 +412,7 @@ public class UpdateWordActivity extends BaseActivity {
                             String string = responseBody.string();
                             Log.d(TAG, "updateWords--onNext: =" + string);
                         } catch (IOException e) {
-                            uploadAudioFailedNumber++;
+                            uploadWordFailedNumber++;
                         }
                     }
 
@@ -425,7 +425,7 @@ public class UpdateWordActivity extends BaseActivity {
                     @Override
                     public void onComplete() {
                         showAlertDialog("更新单词成功：\n共：" + uploadWordTotalNumber +
-                                "\n失败：" + uploadAudioFailedNumber);
+                                "\n失败：" + uploadWordFailedNumber);
                     }
                 });
     }

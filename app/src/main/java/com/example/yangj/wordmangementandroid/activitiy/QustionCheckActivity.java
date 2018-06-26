@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -111,9 +112,9 @@ public class QustionCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        hideProgressDialog();
-                        mTvCheckQuestionResult.setText("共：" + mQuestionListRelease.size());
+                        mTvCheckQuestionResult.setText("共：" + mQuestionListRelease.size() + "道练习");
                         Log.d(TAG, "listAllQuestions--onComplete");
+                        hideProgressDialog();
                     }
                 });
     }
@@ -223,7 +224,16 @@ public class QustionCheckActivity extends BaseActivity {
                 Question question = (Question) mQuestions.get(0);
 
                 mStringBuilder.append("wordId:");
-                mStringBuilder.append(question.getWordId());
+                mStringBuilder.append(question.getId());
+                mStringBuilder.append(question.getType());
+
+                List<String> options = question.getOptions();
+                if (options != null) {
+                    for (String s : options) {
+                        mStringBuilder.append(s);
+                    }
+                }
+//                mStringBuilder.append(question.getWordId());
                 mStringBuilder.append(" ");
                 Word word = null;
                 if (mWordList != null) {
@@ -236,6 +246,8 @@ public class QustionCheckActivity extends BaseActivity {
                 }
                 if (word != null) {
                     mStringBuilder.append(word.getEnglishSpell());
+                } else {
+                    mStringBuilder.append("没有对应的单词");
                 }
                 mStringBuilder.append(" ");
                 if (mQuestions.size() > 10) {
@@ -247,7 +259,13 @@ public class QustionCheckActivity extends BaseActivity {
                 mStringBuilder.append("\n");
                 mStringBuilder.append("\n");
             }
-            mTvCheckQuestionResult.setText(mStringBuilder.toString());
+
+            String toString = mStringBuilder.toString();
+            if (TextUtils.isEmpty(toString)) {
+//                mTvCheckQuestionResult.setText(mQuestionListRelease.size() + "个练习完整");
+            } else {
+                mTvCheckQuestionResult.setText(toString);
+            }
 //            Log.d(TAG, "listGroups--onNext: " + question.getWordId());
 //            mStringBuilder.append(question.getWordId());
 //            mStringBuilder.append(" ");

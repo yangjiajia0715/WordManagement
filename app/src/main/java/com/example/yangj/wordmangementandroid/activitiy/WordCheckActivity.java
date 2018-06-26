@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.TextView;
@@ -36,14 +37,23 @@ import okhttp3.ResponseBody;
  */
 public class WordCheckActivity extends BaseActivity {
     private static final String TAG = "WordCheckActivity";
+    @BindView(R.id.btn_word_check_update_uncomplete)
+    Button mBtnWordCheckUpdateUncomplete;
     private int uploadWordTotalNumber = 0;
     private int uploadWordFailNumber = 0;
+
+    private int updateWordTotalNumber = 0;
+    private int updateWordSkipNumber = 0;
+    private int updateWordFailedNumber = 0;
 
     @BindView(R.id.btn_word_check)
     Button mBtnWordCheck;
     @BindView(R.id.tv_check_word_result)
     TextView mTvCheckWordResult;
     private List<Word> mWordList;
+    private List<Word> mTemp = new ArrayList<>();
+    private int mCount = 0;
+    private List<Word> mNeedUpdateList;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, WordCheckActivity.class);
@@ -56,6 +66,74 @@ public class WordCheckActivity extends BaseActivity {
         setContentView(R.layout.activity_word_check);
         ButterKnife.bind(this);
         listAll();
+    }
+
+
+    @OnClick({R.id.btn_word_check, R.id.btn_word_check_update_uncomplete})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.btn_word_check:
+
+                break;
+            case R.id.btn_word_check_update_uncomplete:
+//                List<Word> needUpdateList = checkWordTemp(mWordList);
+                updateWord(mNeedUpdateList);
+                break;
+        }
+    }
+
+    private void updateWord(List<Word> needUpdateWords) {
+        if (needUpdateWords == null || needUpdateWords.isEmpty()) {
+            showAlertDialog("暂无更新");
+            return;
+        }
+
+        Observable.fromIterable(needUpdateWords)
+                .distinct(new Function<Word, Integer>() {
+                    @Override
+                    public Integer apply(Word word) {
+                        Log.d(TAG, "updateWords--apply: word=" + word.getEnglishSpell());
+                        return word.id;
+                    }
+                })
+                .concatMap(new Function<Word, ObservableSource<ResponseBody>>() {
+                    @Override
+                    public ObservableSource<ResponseBody> apply(Word word) {
+                        return ApiClient.getInstance().updateWord(word);
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<ResponseBody>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResponseBody responseBody) {
+                        updateWordTotalNumber++;
+                        Log.d(TAG, "updateWords--onNext: =");
+                        try {
+                            String string = responseBody.string();
+                            Log.d(TAG, "updateWords--onNext: =" + string);
+                        } catch (IOException e) {
+                            updateWordFailedNumber++;
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, "updateWords--onError:getMessage =" + e.getMessage());
+                        showAlertDialog("更新单词失败：" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        showAlertDialog("更新单词成功：\n共：" + updateWordTotalNumber +
+                                "\n失败：" + updateWordFailedNumber);
+                    }
+                });
     }
 
     private void listAll() {
@@ -81,11 +159,82 @@ public class WordCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-                        checkWord(mWordList);
+//                        checkWord(mWordList);
+                        mNeedUpdateList = checkWordTemp(mWordList);
                     }
                 });
     }
 
+    /**
+     * 是否忘记加句号，
+     */
+    private List<Word> checkWordTemp(List<Word> wordList) {
+        if (wordList == null || wordList.isEmpty()) {
+            showAlertDialog("列表空");
+            return null;
+        }
+        List<Word> needUpdateList = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        StringBuilder sbTemp = new StringBuilder();
+        int index = 0;
+        for (int i = 0; i < wordList.size(); i++) {
+            Word word = wordList.get(i);
+
+            sbTemp.setLength(0);
+//            if (!word.getExampleSentence().contains("'")) {
+//                index++;
+//                sbTemp.append(index);
+//                sbTemp.append(" ");
+//                sbTemp.append(word.getEnglishSpell());
+//                sbTemp.append("  Id:");
+//                sbTemp.append(word.id);
+//                sbTemp.append("  没引号");
+//                sbTemp.append("\n");
+//                sbTemp.append("\n");
+//            }
+
+//            不能这么判断，可能有？ ！等
+//            if (!word.getExampleSentence().trim().endsWith(".")) {
+//            if (word.getExampleSentence().contains("s ")) {
+            if (word.getExampleSentence().contains("It’s ")) {//true 包含
+//            if (word.getExampleSentence().contains("It's ")) {//false
+
+                String all = word.getExampleSentence().replaceAll("It’s ", "It's ");
+                word.setExampleSentence(all);
+
+                needUpdateList.add(word);
+//            if (word.getExampleSentence().contains("Its ")) {
+                //纠正，加上句号
+                index++;
+                sbTemp.append(index);
+                sbTemp.append(" ");
+                sbTemp.append(word.getEnglishSpell());
+                sbTemp.append("  Id:");
+                sbTemp.append(word.id);
+//                sbTemp.append("  没句号");
+//                sbTemp.append(" 已填充：");
+                sbTemp.append(" 例句：");
+                sbTemp.append(word.getExampleSentence());
+                sbTemp.append("\n");
+                sbTemp.append("\n");
+            }
+
+            String toString = sbTemp.toString();
+            if (!TextUtils.isEmpty(toString)) {
+                sb.append(toString);
+            }
+
+        }
+        sbTemp.append("\n");
+        sb.append("---------检查结束-----");
+        mTvCheckWordResult.setText(sb.toString());
+        return needUpdateList;
+    }
+
+
+    /**
+     * 检查单词是否完整
+     */
     private void checkWord(List<Word> wordList) {
         if (wordList == null || wordList.isEmpty()) {
             showAlertDialog("列表空");
@@ -95,7 +244,9 @@ public class WordCheckActivity extends BaseActivity {
         StringBuilder sb = new StringBuilder();
         StringBuilder sbTemp = new StringBuilder();
         int index = 0;
-        for (Word word : wordList) {
+        for (int i = 0; i < wordList.size(); i++) {
+            Word word = wordList.get(i);
+
             sbTemp.setLength(0);
             sbTemp.append(word.getEnglishSpell());
             sbTemp.append("  Id:");
@@ -155,8 +306,10 @@ public class WordCheckActivity extends BaseActivity {
                 index++;
                 sb.append(sbTemp.toString());
                 sbTemp.append("\n");
-                sb.append("-----------index:");
+                sb.append("--------------------index:");
                 sb.append(index);
+                sb.append(" 单词表中的位置:");
+                sb.append(i);
                 sb.append("\n");
                 sb.append("\n");
             }
@@ -164,9 +317,59 @@ public class WordCheckActivity extends BaseActivity {
         mTvCheckWordResult.setText(sb.toString());
     }
 
-    @OnClick(R.id.btn_word_check)
-    public void onViewClicked() {
-//        trim();
+
+    /**
+     * 检查相同的单词
+     */
+    void checkSameWord() {
+        if (mWordList == null || mWordList.isEmpty()) {
+            showAlertDialog("No WordList");
+            return;
+        }
+        mCount = 0;
+        mTemp.clear();
+
+        Log.d(TAG, "checkSameWord: total:" + mWordList.size());
+        Observable.fromIterable(mWordList)
+                .distinct(new Function<Word, String>() {
+                    @Override
+                    public String apply(Word word) throws Exception {
+                        return word.getEnglishSpell();
+                    }
+                })
+                .subscribe(new Observer<Word>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Word word) {
+                        mTemp.add(word);
+                        mCount++;
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        for (Word word : mWordList) {
+                            boolean exist = false;
+                            for (Word word1 : mTemp) {
+                                if (word1.id == word.id) {
+                                    exist = true;
+                                }
+                            }
+                            if (!exist) {
+                                Log.d(TAG, "checkSameWord: 重复:" + word.getEnglishSpell());
+                            }
+                        }
+                        Log.d(TAG, "checkSameWord: mCount:" + mCount);
+                    }
+                });
     }
 
     /**
@@ -230,6 +433,5 @@ public class WordCheckActivity extends BaseActivity {
                     }
                 });
     }
-
 
 }
