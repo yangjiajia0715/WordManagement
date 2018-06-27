@@ -258,15 +258,17 @@ public class QustionCheckActivity extends BaseActivity {
 
             QuestionTitle title = question.getTitle();
             List<String> options = question.getOptions();
+            List<Integer> answersIndex = question.getAnswersIndex();
+            String englishSpell = word.getEnglishSpell();
             switch (question.getType()) {
                 case MATCH_WORD_IMAGE:
-                    if (options != null && options.size() != 3) {
+                    if (options != null && options.size() == 3) {
                         for (String option : options) {
                             if (!URLUtil.isNetworkUrl(option)) {
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 词图关联,url不对！word:");
-                                mStringBuilder.append(word.getEnglishSpell());
+                                mStringBuilder.append(englishSpell);
                                 mStringBuilder.append("\n");
                             }
                         }
@@ -274,7 +276,7 @@ public class QustionCheckActivity extends BaseActivity {
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 词图关联,选项不全！word:");
-                        mStringBuilder.append(word.getEnglishSpell());
+                        mStringBuilder.append(englishSpell);
                         mStringBuilder.append("\n");
                     }
                     break;
@@ -285,11 +287,13 @@ public class QustionCheckActivity extends BaseActivity {
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 词意关联,选项不能为空！word:");
-                                mStringBuilder.append(word.getEnglishSpell());
+                                mStringBuilder.append(englishSpell);
                                 mStringBuilder.append("\n");
-                            } else if (option.matches("^[a-zA-Z]*")){
+                            } else if (option.matches("^[a-zA-Z]*")) {
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" ");
+                                mStringBuilder.append(englishSpell);
                                 mStringBuilder.append(" 词意关联,选项应为汉语！option:");
                                 mStringBuilder.append(option);
                                 mStringBuilder.append("\n");
@@ -299,7 +303,54 @@ public class QustionCheckActivity extends BaseActivity {
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 词意关联,选项不全！word:");
-                        mStringBuilder.append(word.getEnglishSpell());
+                        mStringBuilder.append(englishSpell);
+                        mStringBuilder.append("\n");
+                    }
+                    break;
+                case CHOOSE_IMAGE_BY_LISTEN_WORD://听词选图
+                    if (options != null && options.size() == 2) {
+                        for (String option : options) {
+                            if (!URLUtil.isNetworkUrl(option)) {
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" 听词选图,url不对！word:");
+                                mStringBuilder.append(englishSpell);
+                                mStringBuilder.append("\n");
+                            }
+                        }
+                    } else {
+                        lineNumbers++;
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 听词选图,选项不全！word:");
+                        mStringBuilder.append(englishSpell);
+                        mStringBuilder.append("\n");
+                    }
+                    break;
+                case CHOOSE_WORD_BY_READ_IMAGE://看图选词
+                    if (options != null && options.size() == 2) {
+                        for (String option : options) {
+                            if (TextUtils.isEmpty(option)) {
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" 看图选词,选项不能为空！word:");
+                                mStringBuilder.append(englishSpell);
+                                mStringBuilder.append("\n");
+//                            } else if (!option.matches("^[a-zA-Z]*")){
+                            } else if (!option.matches("[a-zA-Z]*")) {
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" ");
+                                mStringBuilder.append(englishSpell);
+                                mStringBuilder.append(" 看图选词,选项应为英语！option:");
+                                mStringBuilder.append(option);
+                                mStringBuilder.append("\n");
+                            }
+                        }
+                    } else {
+                        lineNumbers++;
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 看图选词,选项不全！word:");
+                        mStringBuilder.append(englishSpell);
                         mStringBuilder.append("\n");
                     }
                     break;
@@ -385,6 +436,47 @@ public class QustionCheckActivity extends BaseActivity {
                         }
                     }
                     break;
+                case SPELL_WORD_BY_READ_IMAGE:
+                case SPELL_WORD_BY_LISTEN_WORD:
+                    if (options != null && options.size() == 4) {
+                        if (answersIndex != null && answersIndex.size() == 2) {
+                            String spell = "";
+                            for (Integer index : answersIndex) {
+                                spell += options.get(index);
+                            }
+
+                            if (!englishSpell.contains(" ")) {//带空格的不处理
+                                if (!TextUtils.equals(spell, englishSpell)) {
+                                    lineNumbers++;
+                                    mStringBuilder.append(lineNumbers);
+                                    mStringBuilder.append(" 拼写答案不对！答案：");
+                                    mStringBuilder.append(spell);
+                                    mStringBuilder.append(" word:");
+                                    mStringBuilder.append(englishSpell);
+                                    mStringBuilder.append("\n");
+                                }
+                            }
+                        } else {
+                            lineNumbers++;
+                            mStringBuilder.append(lineNumbers);
+                            mStringBuilder.append(" 拼写答案不全！");
+                            mStringBuilder.append(" word:");
+                            mStringBuilder.append(englishSpell);
+                            mStringBuilder.append("\n");
+                        }
+
+                        //选项是否有相同的？
+
+                    } else {
+                        lineNumbers++;
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 拼写选项不全！");
+                        mStringBuilder.append(" word:");
+                        mStringBuilder.append(englishSpell);
+                        mStringBuilder.append("\n");
+                    }
+                    break;
+
             }
             mQuestionsGroup.add(t);
         }
