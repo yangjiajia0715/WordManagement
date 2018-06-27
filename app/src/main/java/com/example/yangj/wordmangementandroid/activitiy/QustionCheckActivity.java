@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -235,7 +236,6 @@ public class QustionCheckActivity extends BaseActivity {
         @Override
         public void onNext(T t) {
             Question question = (Question) t;
-            QuestionTitle title = question.getTitle();
 
             Word word = null;
             if (mWordList != null) {
@@ -253,9 +253,56 @@ public class QustionCheckActivity extends BaseActivity {
                 mStringBuilder.append(" questionId:");
                 mStringBuilder.append(question.getId());
                 mStringBuilder.append("\n");
+                return;
             }
 
+            QuestionTitle title = question.getTitle();
+            List<String> options = question.getOptions();
             switch (question.getType()) {
+                case MATCH_WORD_IMAGE:
+                    if (options != null && options.size() != 3) {
+                        for (String option : options) {
+                            if (!URLUtil.isNetworkUrl(option)) {
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" 词图关联,url不对！word:");
+                                mStringBuilder.append(word.getEnglishSpell());
+                                mStringBuilder.append("\n");
+                            }
+                        }
+                    } else {
+                        lineNumbers++;
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 词图关联,选项不全！word:");
+                        mStringBuilder.append(word.getEnglishSpell());
+                        mStringBuilder.append("\n");
+                    }
+                    break;
+                case MATCH_WORD_MEANING:
+                    if (options != null && options.size() == 2) {
+                        for (String option : options) {
+                            if (TextUtils.isEmpty(option)) {
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" 词意关联,选项不能为空！word:");
+                                mStringBuilder.append(word.getEnglishSpell());
+                                mStringBuilder.append("\n");
+                            } else if (option.matches("^[a-zA-Z]*")){
+                                lineNumbers++;
+                                mStringBuilder.append(lineNumbers);
+                                mStringBuilder.append(" 词意关联,选项应为汉语！option:");
+                                mStringBuilder.append(option);
+                                mStringBuilder.append("\n");
+                            }
+                        }
+                    } else {
+                        lineNumbers++;
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 词意关联,选项不全！word:");
+                        mStringBuilder.append(word.getEnglishSpell());
+                        mStringBuilder.append("\n");
+                    }
+                    break;
                 case CHOOSE_WORD_BY_LISTEN_SENTENCE:
                     if (title == null) {
                         lineNumbers++;
