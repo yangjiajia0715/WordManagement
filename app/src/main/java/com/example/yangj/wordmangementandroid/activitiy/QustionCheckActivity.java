@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.Question;
@@ -248,77 +247,94 @@ public class QustionCheckActivity extends BaseActivity {
                 }
             }
 
+            if (word == null) {
+                mStringBuilder.append("没有对应的单词! wordId:");
+                mStringBuilder.append(question.getWordId());
+                mStringBuilder.append(" questionId:");
+                mStringBuilder.append(question.getId());
+                mStringBuilder.append("\n");
+            }
+
             switch (question.getType()) {
                 case CHOOSE_WORD_BY_LISTEN_SENTENCE:
                     if (title == null) {
                         lineNumbers++;
-                        mStringBuilder.append("行号:");
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 听文选词No QuestionTitle！wordId:");
                         mStringBuilder.append(question.getWordId());
+                        mStringBuilder.append(" qId:");
+                        mStringBuilder.append(question.getId());
                         mStringBuilder.append("\n");
                         checkAndCompleteQuestionTitle(question, word);
-
                     } else {
                         String titleTitle = title.getTitle();
                         if (!TextUtils.isEmpty(titleTitle)) {
                             if (titleTitle.contains("’s ") || titleTitle.contains("’re ")) {
                                 lineNumbers++;
-                                mStringBuilder.append("行号:");
                                 mStringBuilder.append(lineNumbers);
                                 titleTitle = titleTitle.replaceAll("’s ", "'s ");
                                 titleTitle = titleTitle.replaceAll("’re ", "'re ");
                                 title.setTitle(titleTitle);
                                 question.setTitle(title);
-                                mNeedUpdateWords.add(question);
+                                mNeedUpdateWords.add(question);///////////add
                                 mStringBuilder.append("听文选词 含有中文 ' 已纠正,请提交！wordId:");
                                 mStringBuilder.append(question.getWordId());
+                                mStringBuilder.append(" qId:");
+                                mStringBuilder.append(question.getId());
                                 mStringBuilder.append("\n");
                                 mStringBuilder.append("纠正为：");
                                 mStringBuilder.append(titleTitle);
                                 mStringBuilder.append("\n");
+                                mStringBuilder.append("\n");
                             }
                         } else {
                             lineNumbers++;
-                            mStringBuilder.append("行号:");
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append("听文选词No QuestionTitle！");
+                            mStringBuilder.append(" qId:");
+                            mStringBuilder.append(question.getId());
                             mStringBuilder.append("\n");
+                            checkAndCompleteQuestionTitle(question, word);
                         }
                     }
                     break;
                 case CHOOSE_WORD_BY_READ_SENTENCE://看句选词
                     if (title == null) {
                         lineNumbers++;
-                        mStringBuilder.append("行号:");
                         mStringBuilder.append(lineNumbers);
-                        mStringBuilder.append(" 看句选词No QuestionTitle！wordId:");
+                        mStringBuilder.append(" 看句选词 No QuestionTitle！wordId:");
                         mStringBuilder.append(question.getWordId());
+                        mStringBuilder.append(" qId:");
+                        mStringBuilder.append(question.getId());
                         mStringBuilder.append("\n");
+                        checkAndCompleteQuestionTitle(question, word);
                     } else {
                         String titleTitle = title.getTitle();
                         if (!TextUtils.isEmpty(titleTitle)) {
-                            if (titleTitle.contains("’s ")) {
+                            if (titleTitle.contains("’s ") || titleTitle.contains("’re ")) {
                                 lineNumbers++;
-                                mStringBuilder.append("行号:");
                                 mStringBuilder.append(lineNumbers);
                                 titleTitle = titleTitle.replaceAll("’s ", "'s ");
+                                titleTitle = titleTitle.replaceAll("’re ", "'re ");
                                 title.setTitle(titleTitle);
                                 question.setTitle(title);
-                                mNeedUpdateWords.add(question);
+                                mNeedUpdateWords.add(question);//////////add
                                 mStringBuilder.append(" 看句选词 含有中文 ' 已纠正,请提交！wordId:");
                                 mStringBuilder.append(question.getWordId());
                                 mStringBuilder.append("\n");
                                 mStringBuilder.append("纠正为：");
                                 mStringBuilder.append(titleTitle);
                                 mStringBuilder.append("\n");
+                                mStringBuilder.append("\n");
                             }
                         } else {
                             lineNumbers++;
-                            mStringBuilder.append("行号:");
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 看句选词No QuestionTitle！");
+                            mStringBuilder.append(" qId:");
+                            mStringBuilder.append(question.getId());
                             mStringBuilder.append("\n");
+                            checkAndCompleteQuestionTitle(question, word);
                         }
                     }
                     break;
@@ -341,17 +357,29 @@ public class QustionCheckActivity extends BaseActivity {
                 Question question = (Question) mQuestionsGroup.get(0);
 
                 mStringBuilder.append("wordId:");
-                mStringBuilder.append(question.getId());
-                mStringBuilder.append(question.getType());
-
-                List<String> options = question.getOptions();
-                if (options != null) {
-                    for (String s : options) {
-                        mStringBuilder.append(s);
+                mStringBuilder.append(question.getWordId());
+                mStringBuilder.append(" ");
+                for (Word word : mWordList) {
+                    if (word.id == question.getWordId()) {
+                        mStringBuilder.append(word.getEnglishSpell());
+                        break;
                     }
                 }
-//                mStringBuilder.append(question.getWordId());
-                mStringBuilder.append(" ");
+//                mStringBuilder.append(" ");
+//                mStringBuilder.append(QuestionType2Chinese.getChinese(question.getType()));
+                mStringBuilder.append("\n");
+
+//                List<String> options = question.getOptions();
+//                if (options != null) {
+//                    mStringBuilder.append("选项：");
+//                    for (String s : options) {
+//                        mStringBuilder.append(s);
+//                        mStringBuilder.append(" ");
+//                    }
+//                    mStringBuilder.append("\n");
+//                }
+
+//                mStringBuilder.append(" ");
                 Word word = null;
                 if (mWordList != null) {
                     for (Word item : mWordList) {
@@ -401,7 +429,7 @@ public class QustionCheckActivity extends BaseActivity {
                 mStringBuilder.append("\n");
             } else {
                 question.setTitle(questionTitle);
-                mNeedUpdateWords.add(question);
+                mNeedUpdateWords.add(question);//////////add
                 mStringBuilder.append(" 已纠正为：");
                 mStringBuilder.append(questionTitle.getTitle());
                 mStringBuilder.append("\n");
@@ -416,7 +444,7 @@ public class QustionCheckActivity extends BaseActivity {
 
     private void updateQustionsApi(List<Question> needUpdateQustions) {
         if (needUpdateQustions == null || needUpdateQustions.isEmpty()) {
-            Toast.makeText(this, "No needUpdateQustions!", Toast.LENGTH_SHORT).show();
+            showAlertDialog("No needUpdateQustions!");
             return;
         }
 
