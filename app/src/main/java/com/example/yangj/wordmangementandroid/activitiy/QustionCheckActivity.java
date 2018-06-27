@@ -257,14 +257,7 @@ public class QustionCheckActivity extends BaseActivity {
                         mStringBuilder.append(" 听文选词No QuestionTitle！wordId:");
                         mStringBuilder.append(question.getWordId());
                         mStringBuilder.append("\n");
-                        if (word != null) {
-                            QuestionTitle questionTitle = QuestionHelper.createQuestionTitle(word);
-                            question.setTitle(questionTitle);
-                            mStringBuilder.append(" 已纠正为：");
-                            mStringBuilder.append(word.getEnglishSpell());
-                        } else {
-                            mStringBuilder.append("没有对应的单词!");
-                        }
+                        checkAndCompleteQuestionTitle(question, word);
 
                     } else {
                         String titleTitle = title.getTitle();
@@ -397,6 +390,27 @@ public class QustionCheckActivity extends BaseActivity {
 //            } else {
 //            }
             mTvCheckQuestionResult.setText(toString);
+        }
+    }
+
+    private void checkAndCompleteQuestionTitle(Question question, Word word) {
+        if (word != null) {
+            QuestionTitle questionTitle = QuestionHelper.createQuestionTitle(word);
+            if (questionTitle == null || TextUtils.isEmpty(questionTitle.getTitle())) {
+                mStringBuilder.append(" 未纠正！！！");
+                mStringBuilder.append("\n");
+            } else {
+                question.setTitle(questionTitle);
+                mNeedUpdateWords.add(question);
+                mStringBuilder.append(" 已纠正为：");
+                mStringBuilder.append(questionTitle.getTitle());
+                mStringBuilder.append("\n");
+            }
+
+        } else {
+            mStringBuilder.append("没有对应的单词! wordId:");
+            mStringBuilder.append(question.getWordId());
+            mStringBuilder.append("\n");
         }
     }
 
