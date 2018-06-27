@@ -20,7 +20,9 @@ import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
 import com.example.yangj.wordmangementandroid.util.QuestionHelper;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
@@ -337,13 +339,13 @@ public class QustionCheckActivity extends BaseActivity {
                                 mStringBuilder.append("\n");
 //                            } else if (!option.matches("^[a-zA-Z]*")){
                             } else if (!option.matches("[a-zA-Z]*")) {
-                                lineNumbers++;
-                                mStringBuilder.append(lineNumbers);
-                                mStringBuilder.append(" ");
-                                mStringBuilder.append(englishSpell);
-                                mStringBuilder.append(" 看图选词,选项应为英语！option:");
-                                mStringBuilder.append(option);
-                                mStringBuilder.append("\n");
+//                                lineNumbers++;
+//                                mStringBuilder.append(lineNumbers);
+//                                mStringBuilder.append(" ");
+//                                mStringBuilder.append(englishSpell);
+//                                mStringBuilder.append(" 看图选词,选项应为英语！option:");
+//                                mStringBuilder.append(option);
+//                                mStringBuilder.append("\n");
                             }
                         }
                     } else {
@@ -439,13 +441,35 @@ public class QustionCheckActivity extends BaseActivity {
                 case SPELL_WORD_BY_READ_IMAGE:
                 case SPELL_WORD_BY_LISTEN_WORD:
                     if (options != null && options.size() == 4) {
+                        boolean trim = false;
+                        List<String> optionsTrim = new ArrayList<>();
+                        for (int i = 0; i < options.size(); i++) {
+                            String s = options.get(i);
+                            if (s.length() != s.trim().length()) {
+                                trim = true;
+                            }
+                            optionsTrim.add(s.trim());
+                        }
+                        if (trim) {
+                            options = optionsTrim;
+                            question.setOptions(options);
+                            mNeedUpdateWords.add(question);///////////add
+
+                            lineNumbers++;
+                            mStringBuilder.append(lineNumbers);
+                            mStringBuilder.append(" 拼写答案含空格，已纠正！请更新");
+                            mStringBuilder.append(" word:");
+                            mStringBuilder.append(englishSpell);
+                            mStringBuilder.append("\n");
+                        }
+
                         if (answersIndex != null && answersIndex.size() == 2) {
                             String spell = "";
                             for (Integer index : answersIndex) {
                                 spell += options.get(index);
                             }
 
-                            if (!englishSpell.contains(" ")) {//带空格的不处理
+                            if (!englishSpell.contains(" ") && !englishSpell.contains("-")) {//带空格的不处理
                                 if (!TextUtils.equals(spell, englishSpell)) {
                                     lineNumbers++;
                                     mStringBuilder.append(lineNumbers);
@@ -466,7 +490,15 @@ public class QustionCheckActivity extends BaseActivity {
                         }
 
                         //选项是否有相同的？
-
+                        Set<String> optionSet = new HashSet<>(options);
+                        if (optionSet.size() != 4) {
+                            lineNumbers++;
+                            mStringBuilder.append(lineNumbers);
+                            mStringBuilder.append(" 拼写选项有相同项！");
+                            mStringBuilder.append(" word:");
+                            mStringBuilder.append(englishSpell);
+                            mStringBuilder.append("\n");
+                        }
                     } else {
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
