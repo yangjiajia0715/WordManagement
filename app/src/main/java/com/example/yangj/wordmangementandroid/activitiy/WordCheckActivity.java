@@ -166,7 +166,7 @@ public class WordCheckActivity extends BaseActivity {
     }
 
     /**
-     * 是否忘记加句号，
+     * 是否忘记加句号，是否包含中文’！！！
      */
     private List<Word> checkWordTemp(List<Word> wordList) {
         if (wordList == null || wordList.isEmpty()) {
@@ -181,26 +181,17 @@ public class WordCheckActivity extends BaseActivity {
             Word word = wordList.get(i);
 
             sbTemp.setLength(0);
-//            if (!word.getExampleSentence().contains("'")) {
-//                index++;
-//                sbTemp.append(index);
-//                sbTemp.append(" ");
-//                sbTemp.append(word.getEnglishSpell());
-//                sbTemp.append("  Id:");
-//                sbTemp.append(word.id);
-//                sbTemp.append("  没引号");
-//                sbTemp.append("\n");
-//                sbTemp.append("\n");
-//            }
 
 //            不能这么判断，可能有？ ！等
 //            if (!word.getExampleSentence().trim().endsWith(".")) {
 //            if (word.getExampleSentence().contains("s ")) {
-            if (word.getExampleSentence().contains("It’s ")) {//true 包含
+            String sentence = word.getExampleSentence();
+            if (sentence.contains("’s ") ||  sentence.contains("’re ")) {//true 包含
 //            if (word.getExampleSentence().contains("It's ")) {//false
 
-                String all = word.getExampleSentence().replaceAll("It’s ", "It's ");
-                word.setExampleSentence(all);
+                sentence = sentence.replaceAll("’s ", "'s ");
+                sentence = sentence.replaceAll("’re ", "'re ");
+                word.setExampleSentence(sentence);
 
                 needUpdateList.add(word);
 //            if (word.getExampleSentence().contains("Its ")) {
@@ -212,8 +203,10 @@ public class WordCheckActivity extends BaseActivity {
                 sbTemp.append("  Id:");
                 sbTemp.append(word.id);
 //                sbTemp.append("  没句号");
-//                sbTemp.append(" 已填充：");
-                sbTemp.append(" 例句：");
+                sbTemp.append("\n");
+                sbTemp.append("含有中文单引号！已纠正，请提交！");
+                sbTemp.append("\n");
+                sbTemp.append("纠正为：");
                 sbTemp.append(word.getExampleSentence());
                 sbTemp.append("\n");
                 sbTemp.append("\n");

@@ -1,5 +1,10 @@
 package com.example.yangj.wordmangementandroid.util;
 
+import android.text.TextUtils;
+
+import com.example.yangj.wordmangementandroid.common.QuestionTitle;
+import com.example.yangj.wordmangementandroid.common.Word;
+
 import java.util.Random;
 
 /**
@@ -7,7 +12,36 @@ import java.util.Random;
  * Created by yangjiajia on 2018/6/21.
  */
 public class QuestionHelper {
+
     private static Random sRandom = new Random();
+
+    public static QuestionTitle createQuestionTitle(Word word) {
+        if (word == null) {
+            return null;
+        }
+        String sentence = word.getExampleSentence();
+        String wordSpell = word.getEnglishSpell();
+        if (TextUtils.isEmpty(sentence) || TextUtils.isEmpty(wordSpell)) {
+            return null;
+        }
+
+        String title = null;
+        if (sentence.contains(wordSpell)) {
+            title = sentence.replace(wordSpell, "__");
+        } else {
+            if (sentence.length() > wordSpell.length()) {
+                String firstStr = sentence.substring(0, wordSpell.length());
+                if (firstStr.equalsIgnoreCase(wordSpell)) {
+                    title = sentence.replace(firstStr, "__");
+                }
+            }
+        }
+
+        QuestionTitle questionTitle = new QuestionTitle();
+        questionTitle.setTitle(title);
+        return questionTitle;
+    }
+
 
 //    public static List<String> createOptions(WordLoad wordLoad, List<Integer> answers, boolean firstSpell) {
 //        int grade = 2;//1- 9年级，年级越高顺序越乱

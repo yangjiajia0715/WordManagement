@@ -802,6 +802,7 @@ public class MainActivity extends BaseActivity {
                     questionChooseWordListener.setWordId(wordRelease.id);
                     List<Integer> answerChooseListen = new ArrayList<>();
                     List<String> optionsChooseListen = new ArrayList<>();
+                    // TODO: 2018/6/27 没有例句？
                     if (i % 2 == 0) {
                         answerChooseListen.add(0);
                         optionsChooseListen.add(wordLoad.word);

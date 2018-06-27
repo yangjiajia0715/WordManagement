@@ -10,6 +10,12 @@
         android:layout_height="wrap_content"
         android:text="检查练习是否完整" />
 
+    <Button
+        android:id="@+id/btn_check_question_update"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="上传纠正后的questions" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent">

@@ -89,9 +89,10 @@ public class UpdateWordActivity extends BaseActivity {
     private int uploadWordTotalNumber = 0;
     private int uploadWordSkipNumber = 0;
     private int uploadWordFailedNumber = 0;
-
     private int needUploadWordTotalNumber = 0;
     private int needUploadWordUnCompelteNumber = 0;
+
+    int needUpdateQustionsSuccessNumber = 0;
 
     private int uploadAudioWordNotFoundNumber = 0;
 
@@ -104,7 +105,7 @@ public class UpdateWordActivity extends BaseActivity {
     private OssTokenInfo mOssTokenInfo;
     private List<Word> needUploadWords = new ArrayList<>();
     private List<Question> needUpdateQustions = new ArrayList<>();
-    int needUpdateQustionsSuccessNumber = 0;
+
     StringBuilder mStringBuilder = new StringBuilder();
     private List<Question> mQuestionListRelease;
 
@@ -155,7 +156,7 @@ public class UpdateWordActivity extends BaseActivity {
                 updateQustions();
                 break;
             case R.id.btn_update_questions_api:
-                updateQustionsApi();
+                updateQustionsApi(needUpdateQustions);
                 break;
             case R.id.btn_upload_word_image:
                 uploadWordImages(mWordAudioAndImagesDir);
@@ -243,7 +244,7 @@ public class UpdateWordActivity extends BaseActivity {
 
     }
 
-    private void updateQustionsApi() {
+    private void updateQustionsApi(List<Question> needUpdateQustions) {
         if (needUpdateQustions == null || needUpdateQustions.isEmpty()) {
             Toast.makeText(this, "No needUpdateQustions!", Toast.LENGTH_SHORT).show();
             return;
@@ -275,12 +276,12 @@ public class UpdateWordActivity extends BaseActivity {
 
                     @Override
                     public void onError(Throwable e) {
-                        showProgressDialog("更新练习失败");
+                        showAlertDialog("更新练习失败");
                     }
 
                     @Override
                     public void onComplete() {
-                        showProgressDialog("更新练习成功 共：" + needUpdateQustionsSuccessNumber);
+                        showAlertDialog("更新练习成功 \n共：" + needUpdateQustionsSuccessNumber);
                     }
                 });
 

@@ -6,14 +6,18 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.Question;
+import com.example.yangj.wordmangementandroid.common.QuestionTitle;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
+import com.example.yangj.wordmangementandroid.util.QuestionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +27,14 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.observables.GroupedObservable;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.ResponseBody;
 
 /**
  * 练习检查
@@ -40,11 +46,16 @@ public class QustionCheckActivity extends BaseActivity {
     Button mBtnBeginCheck;
     @BindView(R.id.tv_check_question_result)
     TextView mTvCheckQuestionResult;
+    @BindView(R.id.btn_check_question_update)
+    Button mBtnCheckQuestionUpdate;
     private List<Question> mQuestionListRelease;
     private StringBuilder mStringBuilder = new StringBuilder();
     private int mWordId1Count;
     List<GroupedObservable<Integer, Question>> groups = new ArrayList<>();
     private List<Word> mWordList;
+    private List<Question> mNeedUpdateWords = new ArrayList<>();
+    int needUpdateQustionsSuccessNumber = 0;
+    int lineNumbers = 0;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, QustionCheckActivity.class);
@@ -119,11 +130,12 @@ public class QustionCheckActivity extends BaseActivity {
                 });
     }
 
-    @OnClick(R.id.btn_begin_check)
-    public void onViewClicked() {
-        if (mQuestionListRelease == null) {
+    private void beginCheck() {
+        if (mQuestionListRelease == null || mQuestionListRelease.isEmpty()) {
+            showAlertDialog("No mQuestionListRelease!");
             return;
         }
+
         groups.clear();
         showProgressDialog();
 
@@ -163,8 +175,9 @@ public class QustionCheckActivity extends BaseActivity {
     private void listGroups() {
         Log.d(TAG, "listGroups--size: " + groups.size());
 
+        lineNumbers = 0;
         //2200  5*200=1000ms
-        Observable.interval(5, TimeUnit.MILLISECONDS)
+        Observable.interval(10, TimeUnit.MILLISECONDS)
                 .map(new Function<Long, GroupedObservable<Integer, Question>>() {
                     @Override
                     public GroupedObservable<Integer, Question> apply(Long aLong) {
@@ -173,7 +186,8 @@ public class QustionCheckActivity extends BaseActivity {
                     }
                 })
                 .take(groups.size())
-                .subscribeOn(Schedulers.newThread())
+//                .subscribeOn(Schedulers.newThread())
+                .subscribeOn(AndroidSchedulers.mainThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<GroupedObservable<Integer, Question>>() {
                     @Override
@@ -198,8 +212,21 @@ public class QustionCheckActivity extends BaseActivity {
                 });
     }
 
+
+    @OnClick({R.id.btn_begin_check, R.id.btn_check_question_update})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.btn_begin_check:
+                beginCheck();
+                break;
+            case R.id.btn_check_question_update:
+                updateQustionsApi(mNeedUpdateWords);
+                break;
+        }
+    }
+
     class QuestionGroupObserver<T> implements Observer<T> {
-        List<T> mQuestions = new ArrayList<>();
+        List<T> mQuestionsGroup = new ArrayList<>();
 
         @Override
         public void onSubscribe(Disposable d) {
@@ -209,7 +236,101 @@ public class QustionCheckActivity extends BaseActivity {
         @Override
         public void onNext(T t) {
             Question question = (Question) t;
-            mQuestions.add(t);
+            QuestionTitle title = question.getTitle();
+
+            Word word = null;
+            if (mWordList != null) {
+                for (Word item : mWordList) {
+                    if (item.id == question.getWordId()) {
+                        word = item;
+                        break;
+                    }
+                }
+            }
+
+            switch (question.getType()) {
+                case CHOOSE_WORD_BY_LISTEN_SENTENCE:
+                    if (title == null) {
+                        lineNumbers++;
+                        mStringBuilder.append("行号:");
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 听文选词No QuestionTitle！wordId:");
+                        mStringBuilder.append(question.getWordId());
+                        mStringBuilder.append("\n");
+                        if (word != null) {
+                            QuestionTitle questionTitle = QuestionHelper.createQuestionTitle(word);
+                            question.setTitle(questionTitle);
+                            mStringBuilder.append(" 已纠正为：");
+                            mStringBuilder.append(word.getEnglishSpell());
+                        } else {
+                            mStringBuilder.append("没有对应的单词!");
+                        }
+
+                    } else {
+                        String titleTitle = title.getTitle();
+                        if (!TextUtils.isEmpty(titleTitle)) {
+                            if (titleTitle.contains("’s ") || titleTitle.contains("’re ")) {
+                                lineNumbers++;
+                                mStringBuilder.append("行号:");
+                                mStringBuilder.append(lineNumbers);
+                                titleTitle = titleTitle.replaceAll("’s ", "'s ");
+                                titleTitle = titleTitle.replaceAll("’re ", "'re ");
+                                title.setTitle(titleTitle);
+                                question.setTitle(title);
+                                mNeedUpdateWords.add(question);
+                                mStringBuilder.append("听文选词 含有中文 ' 已纠正,请提交！wordId:");
+                                mStringBuilder.append(question.getWordId());
+                                mStringBuilder.append("\n");
+                                mStringBuilder.append("纠正为：");
+                                mStringBuilder.append(titleTitle);
+                                mStringBuilder.append("\n");
+                            }
+                        } else {
+                            lineNumbers++;
+                            mStringBuilder.append("行号:");
+                            mStringBuilder.append(lineNumbers);
+                            mStringBuilder.append("听文选词No QuestionTitle！");
+                            mStringBuilder.append("\n");
+                        }
+                    }
+                    break;
+                case CHOOSE_WORD_BY_READ_SENTENCE://看句选词
+                    if (title == null) {
+                        lineNumbers++;
+                        mStringBuilder.append("行号:");
+                        mStringBuilder.append(lineNumbers);
+                        mStringBuilder.append(" 看句选词No QuestionTitle！wordId:");
+                        mStringBuilder.append(question.getWordId());
+                        mStringBuilder.append("\n");
+                    } else {
+                        String titleTitle = title.getTitle();
+                        if (!TextUtils.isEmpty(titleTitle)) {
+                            if (titleTitle.contains("’s ")) {
+                                lineNumbers++;
+                                mStringBuilder.append("行号:");
+                                mStringBuilder.append(lineNumbers);
+                                titleTitle = titleTitle.replaceAll("’s ", "'s ");
+                                title.setTitle(titleTitle);
+                                question.setTitle(title);
+                                mNeedUpdateWords.add(question);
+                                mStringBuilder.append(" 看句选词 含有中文 ' 已纠正,请提交！wordId:");
+                                mStringBuilder.append(question.getWordId());
+                                mStringBuilder.append("\n");
+                                mStringBuilder.append("纠正为：");
+                                mStringBuilder.append(titleTitle);
+                                mStringBuilder.append("\n");
+                            }
+                        } else {
+                            lineNumbers++;
+                            mStringBuilder.append("行号:");
+                            mStringBuilder.append(lineNumbers);
+                            mStringBuilder.append(" 看句选词No QuestionTitle！");
+                            mStringBuilder.append("\n");
+                        }
+                    }
+                    break;
+            }
+            mQuestionsGroup.add(t);
         }
 
         @Override
@@ -218,10 +339,13 @@ public class QustionCheckActivity extends BaseActivity {
         }
 
         @Override
-        public void onComplete() {
-            Log.d(TAG, "listGroups--onNext: " + mQuestions.size());
-            if (mQuestions.size() != 10) {
-                Question question = (Question) mQuestions.get(0);
+        public void onComplete() {//检查每个单词的练习是否完整，只查不改
+            Log.d(TAG, "listGroups--onNext: " + mQuestionsGroup.size());
+            if (mQuestionsGroup.size() == 0) {
+                mStringBuilder.append("mQuestionsGroup size = 0");
+                mStringBuilder.append("\n");
+            } else if (mQuestionsGroup.size() != 10) {
+                Question question = (Question) mQuestionsGroup.get(0);
 
                 mStringBuilder.append("wordId:");
                 mStringBuilder.append(question.getId());
@@ -244,33 +368,78 @@ public class QustionCheckActivity extends BaseActivity {
                         }
                     }
                 }
+
                 if (word != null) {
                     mStringBuilder.append(word.getEnglishSpell());
                 } else {
                     mStringBuilder.append("没有对应的单词");
                 }
+
                 mStringBuilder.append(" ");
-                if (mQuestions.size() > 10) {
+                if (mQuestionsGroup.size() > 10) {
                     mStringBuilder.append("多余10个练习");
                 } else {
                     mStringBuilder.append("少于10个练习");
                 }
-//                mStringBuilder.append(question.getType());
-                mStringBuilder.append("\n");
                 mStringBuilder.append("\n");
             }
 
+//            if (!mQuestionsGroup.isEmpty()) {
+//                Question question = (Question) mQuestionsGroup.get(0);
+//                mStringBuilder.append("=============单词项结束========wordId:");
+//                mStringBuilder.append(question.getWordId());
+//                mStringBuilder.append("\n");
+//            }
+
             String toString = mStringBuilder.toString();
-            if (TextUtils.isEmpty(toString)) {
-//                mTvCheckQuestionResult.setText(mQuestionListRelease.size() + "个练习完整");
-            } else {
-                mTvCheckQuestionResult.setText(toString);
-            }
-//            Log.d(TAG, "listGroups--onNext: " + question.getWordId());
-//            mStringBuilder.append(question.getWordId());
-//            mStringBuilder.append(" ");
-//            mStringBuilder.append(question.getType());
-//            mStringBuilder.append("\n");
+//            if (TextUtils.isEmpty(toString)) {
+////                mTvCheckQuestionResult.setText(mQuestionListRelease.size() + "个练习完整");
+//            } else {
+//            }
+            mTvCheckQuestionResult.setText(toString);
         }
+    }
+
+    private void updateQustionsApi(List<Question> needUpdateQustions) {
+        if (needUpdateQustions == null || needUpdateQustions.isEmpty()) {
+            Toast.makeText(this, "No needUpdateQustions!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Observable.fromIterable(needUpdateQustions)
+//                .take(2)
+                .concatMap(new Function<Question, ObservableSource<ResponseBody>>() {
+                    @Override
+                    public ObservableSource<ResponseBody> apply(Question question) {
+                        Log.d(TAG, "onNext: getWordId=" + question.getWordId());
+                        return ApiClient.getInstance()
+                                .updateQuestion(question);
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<ResponseBody>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(ResponseBody responseBody) {
+                        Log.d(TAG, "onNext: ");
+                        needUpdateQustionsSuccessNumber++;
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        showAlertDialog("更新练习失败");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        showAlertDialog("更新练习成功 \n共：" + needUpdateQustionsSuccessNumber);
+                    }
+                });
+
     }
 }
