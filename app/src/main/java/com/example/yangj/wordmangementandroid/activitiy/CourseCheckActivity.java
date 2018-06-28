@@ -28,8 +28,8 @@ import io.reactivex.functions.Function;
 /**
  * Created by yangjiajia on 2018/6/27.
  */
-public class CourseActivity extends BaseActivity {
-    private static final String TAG = "CourseActivity";
+public class CourseCheckActivity extends BaseActivity {
+    private static final String TAG = "CourseCheckActivity";
     @BindView(R.id.tv_check_course_result)
     TextView mTvCheckCourseResult;
     private List<Word> mListAllWordsRelease;
@@ -39,7 +39,7 @@ public class CourseActivity extends BaseActivity {
     private int dayNumber = 0;
 
     public static void start(Context context) {
-        Intent starter = new Intent(context, CourseActivity.class);
+        Intent starter = new Intent(context, CourseCheckActivity.class);
         context.startActivity(starter);
     }
 

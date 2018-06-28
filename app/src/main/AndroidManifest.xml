@@ -37,7 +37,8 @@
         <activity android:name=".activitiy.AddOrUpdateQustionActivity" />
         <activity android:name=".activitiy.FileSelectorActivity" />
         <activity android:name=".activitiy.WordCheckActivity" />
-        <activity android:name=".activitiy.CourseActivity" />
+        <activity android:name=".activitiy.CourseCheckActivity" />
+        <activity android:name=".activitiy.CourseLearnWordAddActivity" />
     </application>
 
 </manifest>

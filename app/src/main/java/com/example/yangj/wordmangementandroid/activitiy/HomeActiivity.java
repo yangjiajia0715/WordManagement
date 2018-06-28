@@ -34,7 +34,8 @@ public class HomeActiivity extends AppCompatActivity {
             , R.id.btn_question_check
             , R.id.btn_upload_question
             , R.id.btn_update_word
-            , R.id.btn_course
+            , R.id.btn_course_add
+            , R.id.btn_course_check
             , R.id.btn_word_check})
     public void onViewClicked(View view) {
         switch (view.getId()) {
@@ -53,8 +54,11 @@ public class HomeActiivity extends AppCompatActivity {
             case R.id.btn_word_check:
                 WordCheckActivity.start(this);
                 break;
-            case R.id.btn_course:
-                CourseActivity.start(this);
+            case R.id.btn_course_add:
+                CourseLearnWordAddActivity.start(this);
+                break;
+            case R.id.btn_course_check:
+                CourseCheckActivity.start(this);
                 break;
         }
     }
