@@ -186,11 +186,15 @@ public class WordCheckActivity extends BaseActivity {
 //            if (!word.getExampleSentence().trim().endsWith(".")) {
 //            if (word.getExampleSentence().contains("s ")) {
             String sentence = word.getExampleSentence();
-            if (sentence.contains("’s ") ||  sentence.contains("’re ")) {//true 包含
+            if (sentence.contains("’s ") ||  sentence.contains("’re ")
+                    ||  sentence.contains("’m ")
+                    ||  sentence.contains("’t ")) {//true 包含
 //            if (word.getExampleSentence().contains("It's ")) {//false
 
                 sentence = sentence.replaceAll("’s ", "'s ");
                 sentence = sentence.replaceAll("’re ", "'re ");
+                sentence = sentence.replaceAll("’m ", "'m ");
+                sentence = sentence.replaceAll("’t ", "'t ");
                 word.setExampleSentence(sentence);
 
                 needUpdateList.add(word);

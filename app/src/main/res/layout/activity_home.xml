@@ -35,4 +35,10 @@
         android:layout_height="wrap_content"
         android:text="更新单词：音频、例句,图片" />
 
+    <Button
+        android:id="@+id/btn_course"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="课程排词相关" />
+
 </LinearLayout>

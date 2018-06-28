@@ -40,4 +40,10 @@ public interface ApiQiBu {
     @GET("/oss/getSTSToken")
     Observable<ResultBeanInfo<OssTokenInfo>> getSTSToken();
 
+    /**
+     * 课程及排词信息
+     */
+    @GET("/course/listAll")
+    Observable<ResponseBody> listAllCourse();
+
 }

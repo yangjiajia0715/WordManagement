@@ -1,6 +1,8 @@
 package com.example.yangj.wordmangementandroid.retrofit;
 
+import com.alibaba.fastjson.JSON;
 import com.example.yangj.wordmangementandroid.BuildConfig;
+import com.example.yangj.wordmangementandroid.common.CourseInfo;
 import com.example.yangj.wordmangementandroid.common.FileUploadInfo;
 import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
 import com.example.yangj.wordmangementandroid.common.Question;
@@ -8,11 +10,17 @@ import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -133,6 +141,26 @@ public class ApiClient {
                 .observeOn(AndroidSchedulers.mainThread());
     }
 
+    public Observable<List<CourseInfo>> listAllCourse() {
+        return mApiQiBu.listAllCourse()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Function<ResponseBody, List<CourseInfo>>() {
+                    @Override
+                    public List<CourseInfo> apply(ResponseBody responseBody) throws Exception {
+                        String string = responseBody.string();
+                        JSONObject jsonObject = new JSONObject(string);
+//                        String message = jsonObject.optString("message");
+//                        JSONObject dataObject = jsonObject.optJSONObject("data");
+                        JSONArray jsonArray = jsonObject.optJSONArray("data");
+//                        JSONObject jsonObject1 = jsonObject.getJSONObject("data");
+                        if (jsonArray != null) {
+                            return JSON.parseArray(jsonArray.toString(), CourseInfo.class);
+                        }
+                        return new ArrayList<>();
+                    }
+                });
+    }
 
 
 }
