@@ -2,7 +2,6 @@ package com.example.yangj.wordmangementandroid.activitiy;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -94,31 +93,21 @@ public class FileRenameActivity extends BaseActivity {
             for (File listFile : listFiles) {
                 String fileName = listFile.getName().trim();
                 if (fileName.endsWith(".png")) {//只重命名文件
-                    if (fileName.startsWith("00")) {
+                    if (fileName.startsWith("00") || fileName.contains("rect-wrong-pic")) {
                         File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic.png");
-//                        listFile.renameTo();
+                        Log.d(TAG, "rename: " + fileNew.getName());
                     } else {
                         BitmapFactory.Options options = new BitmapFactory.Options();
                         options.inJustDecodeBounds = true;
-                        Bitmap bitmap = BitmapFactory.decodeFile(listFile.getPath(), options);
-//                        if (i == listFiles.length - 1) {
-//						picName = wordName + "-square-pic" + suffix;
-//					} else if (i == listFiles.length - 2) {
-//						picName = wordName + "-rect-wrong-pic" + suffix;
-//					} else {
-//						picName = wordName + "-rect-right-pic-" + (i + 1) + suffix;
-//					}
+                        BitmapFactory.decodeFile(listFile.getPath(), options);
                         if (options.outWidth == options.outHeight) {//正方形
                             File fileNew = new File(fileWord, wordSpell + "-square-pic.png");
+                            Log.d(TAG, "rename: " + fileNew.getName());
                         } else {
-                            File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic" + ".png");
-
                             index++;
+                            File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic"+index + ".png");
+                            Log.d(TAG, "rename: " + fileNew.getName());
                         }
-                        Log.d(TAG, "onActivityResult: wordSpell=" + wordSpell);
-                        Log.d(TAG, "onActivityResult: getWidth=" + options.outWidth);
-                        Log.d(TAG, "onActivityResult: getHeight=" + options.outHeight);
-                        Log.d(TAG, "onActivityResult: bitmap=" + bitmap);
                     }
                 }
             }
