@@ -16,6 +16,8 @@ import com.example.yangj.wordmangementandroid.R;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import butterknife.BindView;
@@ -83,8 +85,29 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
 
         for (File file1 : files) {
             mDatas.add(file1.getPath());
-            mDatasShow.add(file1.getName());
         }
+
+        Collections.sort(mDatas, new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                File file1 = new File(o1);
+                File file2 = new File(o2);
+
+                if (file1.isFile()) {
+                    return 1;
+                }
+
+                if (file2.isDirectory()) {
+                    return -1;
+                }
+                return 0;
+            }
+        });
+
+        for (String pathItem : mDatas) {
+            mDatasShow.add(new File(pathItem).getName());
+        }
+
         mAdapter.notifyDataSetChanged();
 
         mTvSelectCount.setText("共" + mDatasShow.size() + "条数据");
