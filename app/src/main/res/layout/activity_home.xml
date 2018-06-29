@@ -47,4 +47,10 @@
         android:layout_height="wrap_content"
         android:text="课程排词 检查" />
 
+    <Button
+        android:id="@+id/btn_rename_file"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="重命名文件" />
+
 </LinearLayout>
