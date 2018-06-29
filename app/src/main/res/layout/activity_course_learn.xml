@@ -12,8 +12,9 @@
     <TextView
         android:id="@+id/tv_learn_plan_path"
         android:layout_width="match_parent"
-        android:text="请选择排词文件！"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:padding="6dp"
+        android:text="请选择排词文件！" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,21 +26,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="解析1" />
+            android:text="选择文件解析" />
 
         <Button
             android:id="@+id/btn_learn_plan_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="解析1" />
+            android:text="暂无" />
 
         <Button
             android:id="@+id/btn_learn_plan_3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="解析1" />
+            android:text="提交" />
     </LinearLayout>
 
 

@@ -18,6 +18,7 @@ import com.alibaba.sdk.android.oss.callback.OSSCompletedCallback;
 import com.alibaba.sdk.android.oss.model.PutObjectRequest;
 import com.alibaba.sdk.android.oss.model.PutObjectResult;
 import com.example.yangj.wordmangementandroid.MyApp;
+import com.example.yangj.wordmangementandroid.common.AddLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.common.WordLoad;
@@ -366,6 +367,160 @@ public abstract class BaseActivity extends AppCompatActivity {
 
                 if (index == 6) {
                     index = 0;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    List<AddLearningDailyPlan> parseLearnPlanFile(String path, int courseId, List<Word> wordList) {
+        List<AddLearningDailyPlan> learningDailyPlanList = new ArrayList<>();
+
+        if (TextUtils.isEmpty(path)) {
+            showAlertDialog("请选择要解析的文件！");
+            return null;
+        }
+
+        if (wordList == null || wordList.isEmpty()) {
+            showAlertDialog("单词列表为空！");
+            return null;
+        }
+
+        File file = new File(path);
+
+        if (!file.exists() || !file.isFile()) {
+            Toast.makeText(this, "文件不存在" + file.getName(), Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        //检查文件格式！！！
+        boolean rightFormat = checkLearnPlanFileFormat(file);
+        if (!rightFormat) {
+            return null;
+        }
+
+        BufferedReader bufferedReader = null;
+        try {
+            FileReader fileReader = new FileReader(file);
+            bufferedReader = new BufferedReader(fileReader);
+            String line;
+            int index = 0;
+            //之前会校验文件格式，所以这里大胆使用
+            while ((line = bufferedReader.readLine()) != null) {
+                String lineStr = line.trim();
+                if (TextUtils.isEmpty(lineStr)) {
+                    //skip 空行
+                    continue;
+                }
+                index++;
+                Log.d(TAG, "loadFile: line=" + lineStr);
+                switch (index) {
+                    case 1:
+                    case 2:
+                        break;
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                        AddLearningDailyPlan addLearningDailyPlan = new AddLearningDailyPlan();
+                        addLearningDailyPlan.setCourseId(courseId);
+
+                        List<Integer> wordIds = new ArrayList<>();
+                        addLearningDailyPlan.setWords(wordIds);
+                        String[] split = lineStr.split(" ");
+                        for (String wordSpell : split) {
+                            if (!TextUtils.isEmpty(wordSpell)) {
+                                if (wordSpell.contains("=")) {
+                                    wordSpell = wordSpell.replaceAll("=", " ");
+                                }
+                                boolean exist = false;
+                                for (Word word : wordList) {
+                                    if (word.getEnglishSpell().equalsIgnoreCase(wordSpell)) {
+                                        exist = true;
+                                        wordIds.add(word.id);
+                                        break;
+                                    }
+                                }
+                                if (!exist) {
+                                    Log.e(TAG, "parseLearnPlanFile: 没找到单词：" + wordSpell);
+                                    showAlertDialog("单词不存在：" + wordSpell);
+                                    return null;
+                                }
+                            }
+                        }
+                        learningDailyPlanList.add(addLearningDailyPlan);
+                        break;
+                    default:
+                        throw new IllegalMonitorStateException("单词信息多余7行");
+                }
+                if (index == 7) {
+                    index = 0;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (bufferedReader != null) {
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return learningDailyPlanList;
+    }
+
+    private boolean checkLearnPlanFileFormat(File file) {
+        try {
+            BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+            String line;
+            int index = 0;
+            int lineNumber = 0;
+
+            while ((line = bufferedReader.readLine()) != null) {
+                lineNumber++;
+                line = line.trim();
+                if (line.startsWith("M") && line.endsWith(":")) {
+                    index = 0;
+                }
+
+                index++;
+                switch (index) {
+                    case 1://第1行：
+                        break;
+                    case 2://第2行：
+                        if (!line.startsWith("D")) {
+                            showAlertDialog("文件格式不正确：\n没有以D开头！\n行号：" + lineNumber);
+                            return false;
+                        }
+                        break;
+                    case 3://第3行：
+                    case 4://第4行：
+                    case 5://第5行：
+                    case 6://第6行：
+                    case 7://第6行：
+                        if (TextUtils.isEmpty(line)) {
+                            showAlertDialog("文件格式不正确：\n不够5行！\n行号：" + lineNumber);
+                            return false;
+                        }
+
+                        String[] split = line.split(" ");
+                        int count = 0;
+                        for (String s : split) {
+                            if (!TextUtils.isEmpty(s)) {
+                                count++;
+                            }
+                        }
+
+                        if (count != 3) {
+                            showAlertDialog("文件格式不正确：\n当天不是三个单词！\n行号：" + lineNumber);
+                            return false;
+                        }
+                        break;
                 }
             }
         } catch (IOException e) {

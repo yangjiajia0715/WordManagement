@@ -2,7 +2,9 @@ package com.example.yangj.wordmangementandroid.retrofit;
 
 import com.alibaba.fastjson.JSON;
 import com.example.yangj.wordmangementandroid.BuildConfig;
+import com.example.yangj.wordmangementandroid.common.AddLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.CourseInfo;
+import com.example.yangj.wordmangementandroid.common.DeleteLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.FileUploadInfo;
 import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
 import com.example.yangj.wordmangementandroid.common.Question;
@@ -162,5 +164,12 @@ public class ApiClient {
                 });
     }
 
+    public Observable<ResponseBody> addLearningDailyPlan(AddLearningDailyPlan dailyPlan) {
+        return mApiQiBu.addLearningDailyPlan(dailyPlan);
+    }
+
+    public Observable<ResponseBody> deleteLearningDailyPlan(DeleteLearningDailyPlan deleteLearningDailyPlan) {
+        return mApiQiBu.deleteLearningDailyPlan(deleteLearningDailyPlan);
+    }
 
 }
