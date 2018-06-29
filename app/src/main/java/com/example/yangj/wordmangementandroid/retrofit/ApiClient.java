@@ -169,7 +169,8 @@ public class ApiClient {
     }
 
     public Observable<ResponseBody> deleteLearningDailyPlan(DeleteLearningDailyPlan deleteLearningDailyPlan) {
-        return mApiQiBu.deleteLearningDailyPlan(deleteLearningDailyPlan);
+//        return mApiQiBu.deleteLearningDailyPlan(deleteLearningDailyPlan);
+        return null;
     }
 
 }

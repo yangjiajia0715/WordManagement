@@ -1,7 +1,6 @@
 package com.example.yangj.wordmangementandroid.retrofit;
 
 import com.example.yangj.wordmangementandroid.common.AddLearningDailyPlan;
-import com.example.yangj.wordmangementandroid.common.DeleteLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.OssTokenInfo;
 import com.example.yangj.wordmangementandroid.common.Question;
 import com.example.yangj.wordmangementandroid.common.ResultBeanInfo;
@@ -53,11 +52,5 @@ public interface ApiQiBu {
      */
     @POST("/course/addLearningDailyPlan")
     Observable<ResponseBody> addLearningDailyPlan(@Body AddLearningDailyPlan dailyPlan);
-
-    /**
-     * 删除排词信息
-     */
-    @POST("/course/deleteLearningDailyPlan")
-    Observable<ResponseBody> deleteLearningDailyPlan(@Body DeleteLearningDailyPlan deleteLearningDailyPlan);
 
 }

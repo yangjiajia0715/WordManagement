@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -37,6 +38,7 @@ public class FileRenameActivity extends BaseActivity {
     Button mBtnSelectRenameFile3;
     @BindView(R.id.tv_message)
     TextView mTvMessage;
+    private String mNeedRenameDir;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, FileRenameActivity.class);
@@ -49,6 +51,7 @@ public class FileRenameActivity extends BaseActivity {
         setContentView(R.layout.activity_file_rename);
         ButterKnife.bind(this);
         setTitle("重命名文件");
+        FileSelectorActivity.startForResult(this, REQ_SELECT_RENAME);
         initData();
     }
 
@@ -61,13 +64,113 @@ public class FileRenameActivity extends BaseActivity {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_select_rename_file:
-                FileSelectorActivity.startForResult(this, REQ_SELECT_RENAME);
+                if (checkDir(mNeedRenameDir)) {
+                    rename(mNeedRenameDir);
+                }
                 break;
             case R.id.btn_select_rename_file_2:
                 break;
             case R.id.btn_select_rename_file_3:
                 break;
         }
+    }
+
+    private void rename(String needRenameDir) {
+        File file = new File(needRenameDir);
+        File[] files = file.listFiles();
+        for (File fileWord : files) {
+            String name = fileWord.getName().trim();
+            String wordSpell = name.substring(name.indexOf(" ")).trim();
+
+            File[] listFiles = fileWord.listFiles();
+            if (listFiles == null) {
+                continue;
+            }
+
+            boolean existSquare = false;
+            boolean existRectError = false;
+            boolean existRectRight = false;
+            int index = 0;
+            for (File listFile : listFiles) {
+                String fileName = listFile.getName().trim();
+                if (fileName.endsWith(".png")) {//只重命名文件
+                    if (fileName.startsWith("00")) {
+                        File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic.png");
+//                        listFile.renameTo();
+                    } else {
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inJustDecodeBounds = true;
+                        Bitmap bitmap = BitmapFactory.decodeFile(listFile.getPath(), options);
+//                        if (i == listFiles.length - 1) {
+//						picName = wordName + "-square-pic" + suffix;
+//					} else if (i == listFiles.length - 2) {
+//						picName = wordName + "-rect-wrong-pic" + suffix;
+//					} else {
+//						picName = wordName + "-rect-right-pic-" + (i + 1) + suffix;
+//					}
+                        if (options.outWidth == options.outHeight) {//正方形
+                            File fileNew = new File(fileWord, wordSpell + "-square-pic.png");
+                        } else {
+                            File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic" + ".png");
+
+                            index++;
+                        }
+                        Log.d(TAG, "onActivityResult: wordSpell=" + wordSpell);
+                        Log.d(TAG, "onActivityResult: getWidth=" + options.outWidth);
+                        Log.d(TAG, "onActivityResult: getHeight=" + options.outHeight);
+                        Log.d(TAG, "onActivityResult: bitmap=" + bitmap);
+                    }
+                }
+            }
+        }
+
+    }
+
+    boolean checkDir(String path) {
+        if (TextUtils.isEmpty(path)) {
+            showAlertDialog("请选择目录！");
+            return false;
+        }
+
+        File file = new File(path);
+        if (!file.exists() || !file.isDirectory()) {
+            showAlertDialog("不是目录！" + file.getName());
+            return false;
+        }
+
+        File[] files = file.listFiles();
+        if (files == null || files.length == 0) {
+            showAlertDialog("空目录！" + file.getName());
+            return false;
+        }
+
+        for (File fileWord : files) {
+            String name = fileWord.getName().trim();
+            String[] split = name.split(" ");
+            if (split.length < 2) {
+                showAlertDialog("空格分割项小于2！" + name);
+                return false;
+            }
+
+            int parseInt = Integer.parseInt(split[0]);
+            if (parseInt <= 0) {
+                showAlertDialog("空格Number需要大于0！" + name);
+                return false;
+            }
+
+            String wordSpell = name.substring(split[0].length()).trim();
+            //todo
+            if (TextUtils.isEmpty(wordSpell)) {
+                showAlertDialog("截取单词拼写失败：" + name);
+                return false;
+            }
+
+            File[] listFiles = fileWord.listFiles();
+
+
+        }
+
+        return true;
     }
 
     @Override
@@ -79,20 +182,13 @@ public class FileRenameActivity extends BaseActivity {
         }
         switch (requestCode) {
             case REQ_SELECT_RENAME:
-                String pathWord = data.getStringExtra(Intent.EXTRA_TEXT);
-                File fileWord = new File(pathWord);
-//                if (!fileWord.exists() || !fileWord.isDirectory()) {
-//                    showProgressDialog("文件不存在，或者不是目录：" + fileWord.getName());
-//                    return;
-//                }
-                String path = "";
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inJustDecodeBounds = true;
-                Bitmap bitmap = BitmapFactory.decodeFile(path, options);
-                Log.d(TAG, "onActivityResult: getWidth=" + bitmap.getWidth());
-                Log.d(TAG, "onActivityResult: getHeight=" + bitmap.getHeight());
-                Log.d(TAG, "onActivityResult: getByteCount=" + bitmap.getByteCount());
-
+                String path = data.getStringExtra(Intent.EXTRA_TEXT);
+                File fileWord = new File(path);
+                if (!fileWord.exists() || !fileWord.isDirectory()) {
+                    showProgressDialog("文件不存在，或者不是目录：" + fileWord.getName());
+                    return;
+                }
+                mNeedRenameDir = path;
                 mTvRenamePath.setText("需要重命名的文件所在的文件夹：" + fileWord.getName());
                 break;
         }
