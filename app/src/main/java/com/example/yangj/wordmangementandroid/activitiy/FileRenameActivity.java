@@ -74,6 +74,9 @@ public class FileRenameActivity extends BaseActivity {
         }
     }
 
+    /**
+     * rect wrong:需要以"00"开头
+     */
     private void rename(String needRenameDir) {
         File file = new File(needRenameDir);
         File[] files = file.listFiles();
@@ -82,12 +85,12 @@ public class FileRenameActivity extends BaseActivity {
             String wordSpell = name.substring(name.indexOf(" ")).trim();
 
             File[] listFiles = fileWord.listFiles();
-            if (listFiles == null) {
+            if (listFiles == null || listFiles.length == 0) {
                 continue;
             }
 
             boolean existSquare = false;
-            boolean existRectError = false;
+            boolean existRectWrong = false;
             boolean existRectRight = false;
             int index = 0;
             for (File listFile : listFiles) {
@@ -96,6 +99,7 @@ public class FileRenameActivity extends BaseActivity {
                     if (fileName.startsWith("00") || fileName.contains("rect-wrong-pic")) {
                         File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic.png");
                         Log.d(TAG, "rename: " + fileNew.getName());
+                        existRectWrong = true;
                     } else {
                         BitmapFactory.Options options = new BitmapFactory.Options();
                         options.inJustDecodeBounds = true;
@@ -103,13 +107,27 @@ public class FileRenameActivity extends BaseActivity {
                         if (options.outWidth == options.outHeight) {//正方形
                             File fileNew = new File(fileWord, wordSpell + "-square-pic.png");
                             Log.d(TAG, "rename: " + fileNew.getName());
+                            existSquare = true;
                         } else {
                             index++;
-                            File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic"+index + ".png");
+                            File fileNew = new File(fileWord, wordSpell + "-rect-right-pic" + index + ".png");
+                            existRectRight = true;
                             Log.d(TAG, "rename: " + fileNew.getName());
                         }
                     }
                 }
+            }
+
+            if (!existSquare) {
+                Log.e(TAG, "rename: 没有方正方形" + wordSpell);
+            }
+
+            if (!existRectRight) {
+                Log.e(TAG, "rename: 没有矩形正确图片 " + wordSpell);
+            }
+
+            if (!existRectWrong) {
+                Log.e(TAG, "rename: 没有矩形干扰项图片 " + wordSpell);
             }
         }
 
@@ -148,14 +166,11 @@ public class FileRenameActivity extends BaseActivity {
             }
 
             String wordSpell = name.substring(split[0].length()).trim();
-            //todo
+            //todo 含有====
             if (TextUtils.isEmpty(wordSpell)) {
                 showAlertDialog("截取单词拼写失败：" + name);
                 return false;
             }
-
-            File[] listFiles = fileWord.listFiles();
-
 
         }
 
