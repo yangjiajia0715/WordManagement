@@ -87,6 +87,7 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
             mDatas.add(file1.getPath());
         }
 
+        //不起作用
         Collections.sort(mDatas, new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {

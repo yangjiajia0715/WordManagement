@@ -39,7 +39,11 @@ import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 
 /**
- * 格式要求：单词之间有空格用“=”代替
+ * 排词
+ * 格式要求：
+ * 单词之间有空格用“=”代替
+ * 单词必须存在
+ * 三个单词
  * Created by yangjiajia on 2018/6/28.
  */
 public class CourseLearnWordAddActivity extends BaseActivity implements AdapterView.OnItemSelectedListener {
@@ -192,7 +196,7 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
             case R.id.btn_learn_plan_3:
                 int courseInfoId = mCurCourseInfo.getId();
 
-                if (courseInfoId == 3 || courseInfoId == 4
+                if (courseInfoId == 3/* || courseInfoId == 4*/
                         || courseInfoId == 5
                         || courseInfoId == 6) {
                     showAlertDialog("返回！courseInfoId=" + courseInfoId);

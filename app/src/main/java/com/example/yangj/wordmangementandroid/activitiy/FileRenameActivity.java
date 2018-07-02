@@ -80,11 +80,15 @@ public class FileRenameActivity extends BaseActivity {
     private void rename(String needRenameDir) {
         File file = new File(needRenameDir);
         File[] files = file.listFiles();
-        for (File fileWord : files) {
-            String name = fileWord.getName().trim();
+        int renameTotalCount = 0;
+        int renameSuccessCount = 0;
+        int renameSkipCount = 0;
+        int renameUnCompleteCount = 0;
+        for (File wordDir : files) {
+            String name = wordDir.getName().trim();
             String wordSpell = name.substring(name.indexOf(" ")).trim();
 
-            File[] listFiles = fileWord.listFiles();
+            File[] listFiles = wordDir.listFiles();
             if (listFiles == null || listFiles.length == 0) {
                 continue;
             }
@@ -95,41 +99,58 @@ public class FileRenameActivity extends BaseActivity {
             int index = 0;
             for (File listFile : listFiles) {
                 String fileName = listFile.getName().trim();
-                if (fileName.endsWith(".png")) {//只重命名文件
-                    if (fileName.startsWith("00") || fileName.contains("rect-wrong-pic")) {
-                        File fileNew = new File(fileWord, wordSpell + "-rect-wrong-pic.png");
-                        Log.d(TAG, "rename: " + fileNew.getName());
-                        existRectWrong = true;
+                if (!fileName.endsWith(".png")) {//只重命名文件}
+                    continue;
+                }
+                renameTotalCount++;
+                String fileRename;
+                if (fileName.startsWith("00") || fileName.contains("rect-wrong-pic")) {
+                    fileRename = wordSpell + "-rect-wrong-pic.png";
+                    existRectWrong = true;
+                } else {
+                    BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(listFile.getPath(), options);
+                    if (options.outWidth == options.outHeight) {//正方形
+                        fileRename = wordSpell + "-square-pic.png";
+                        existSquare = true;
                     } else {
-                        BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inJustDecodeBounds = true;
-                        BitmapFactory.decodeFile(listFile.getPath(), options);
-                        if (options.outWidth == options.outHeight) {//正方形
-                            File fileNew = new File(fileWord, wordSpell + "-square-pic.png");
-                            Log.d(TAG, "rename: " + fileNew.getName());
-                            existSquare = true;
-                        } else {
-                            index++;
-                            File fileNew = new File(fileWord, wordSpell + "-rect-right-pic" + index + ".png");
-                            existRectRight = true;
-                            Log.d(TAG, "rename: " + fileNew.getName());
-                        }
+                        index++;
+                        fileRename = wordSpell + "-rect-right-pic" + index + ".png";
+                        existRectRight = true;
                     }
+                }
+
+                File fileNew = new File(wordDir, fileRename);
+                Log.d(TAG, "rename: " + fileNew.getName());
+                boolean success = listFile.renameTo(fileNew);
+                if (success) {
+                    renameSuccessCount++;
+                } else {
+                    renameSkipCount++;
                 }
             }
 
             if (!existSquare) {
+                renameUnCompleteCount++;
                 Log.e(TAG, "rename: 没有方正方形" + wordSpell);
             }
 
             if (!existRectRight) {
+                renameUnCompleteCount++;
                 Log.e(TAG, "rename: 没有矩形正确图片 " + wordSpell);
             }
 
             if (!existRectWrong) {
+                renameUnCompleteCount++;
                 Log.e(TAG, "rename: 没有矩形干扰项图片 " + wordSpell);
             }
         }
+
+        showAlertDialog("完成！\n共：" + renameTotalCount
+                + "\n命名成功：" + renameSuccessCount
+                + "\n命名失败：" + renameSkipCount
+                + "\n信息不完整：" + renameUnCompleteCount);
 
     }
 

@@ -517,7 +517,14 @@ public abstract class BaseActivity extends AppCompatActivity {
                         }
 
                         if (count != 3) {
-                            showAlertDialog("文件格式不正确：\n当天不是三个单词！\n行号：" + lineNumber);
+                            Log.e(TAG, "checkLearnPlanFileFormat: 文件格式不正确：当天不是三个单词！" + lineNumber );
+//                            showAlertDialog("文件格式不正确：\n当天不是三个单词！\n行号：" + lineNumber);
+//                            return false;////////////////temp 2018-7-2
+
+                        }
+
+                        if (count == 0) {
+                            showAlertDialog("文件格式不正确：\n当天没有单词！\n行号：" + lineNumber);
                             return false;
                         }
                         break;
