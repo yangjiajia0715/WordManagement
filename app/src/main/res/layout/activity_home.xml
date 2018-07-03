@@ -38,6 +38,7 @@
     <Button
         android:id="@+id/btn_course_add"
         android:layout_width="match_parent"
+        android:layout_marginTop="50dp"
         android:layout_height="wrap_content"
         android:text="课程排词 添加" />
 

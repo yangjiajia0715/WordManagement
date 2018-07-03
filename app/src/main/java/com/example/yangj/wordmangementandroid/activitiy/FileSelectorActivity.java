@@ -99,11 +99,19 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
                 File file2 = new File(o2);
 
                 if (file1.isFile()) {
+                    return -1;
+                }
+
+                if (file1.isDirectory()) {
                     return 1;
                 }
 
-                if (file2.isDirectory()) {
+                if (file2.isFile()) {
                     return -1;
+                }
+
+                if (file2.isDirectory()) {
+                    return 1;
                 }
                 return 0;
             }

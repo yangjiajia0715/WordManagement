@@ -10,11 +10,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="8dp"
+        android:visibility="gone"
         android:text="请选择包含单词文件！" />
 
     <Button
         android:id="@+id/btn_select_word_file"
         android:layout_width="match_parent"
+        android:visibility="gone"
         android:layout_height="wrap_content"
         android:text="选择单词文件并解析" />
 
@@ -35,14 +37,13 @@
         android:id="@+id/btn_upload_audio"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="上传音频" />
+        android:text="上传音频,然后请点击'更新单词'按钮" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp"
-        android:text="上传单词图片,正方形和矩形:" />
+        android:text="上传单词图片,正方形和矩形: 注意图片命名规范！！！" />
 
     <LinearLayout
         android:layout_width="match_parent"

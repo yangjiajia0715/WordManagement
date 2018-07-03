@@ -119,6 +119,7 @@ public class UpdateWordActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_update_word);
         ButterKnife.bind(this);
+        setTitle("更新音频、单词图片");
         MyApp app = (MyApp) getApplication();
         mOssTokenInfo = app.getOssTokenInfo();
         mOss = app.getOss();
@@ -614,7 +615,7 @@ public class UpdateWordActivity extends BaseActivity {
 
                         @Override
                         public void onComplete() {
-                            showProgressDialog("音频上传成功！"
+                            showAlertDialog("音频上传成功！"
                                     + "\n共：" + uploadAudioTotalNumber
                                     + "\n跳过：" + uploadAudioSkipNumber
                                     + "\n失败：" + uploadAudioFailedNumber);
