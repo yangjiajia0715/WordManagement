@@ -82,6 +82,10 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
         mDatasShow.clear();
         File file = new File(path);
         File[] files = file.listFiles();
+        if (files == null) {
+            Toast.makeText(this, "空列表！", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         for (File file1 : files) {
             mDatas.add(file1.getPath());

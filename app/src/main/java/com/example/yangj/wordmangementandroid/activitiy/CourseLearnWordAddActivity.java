@@ -49,6 +49,7 @@ import okhttp3.ResponseBody;
 public class CourseLearnWordAddActivity extends BaseActivity implements AdapterView.OnItemSelectedListener {
     private static final int REQ_SELECT_LEARN_PLAN_FILE = 11;
     private static final String TAG = "CourseLearnWordAddActiv";
+//    private int
 
     @BindView(R.id.spiner)
     Spinner mSpiner;
@@ -275,8 +276,13 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
         StringBuilder oneStr = new StringBuilder();
         StringBuilder twoStr = new StringBuilder();
         List<CourseInfo.PlansBean> plans = mCurCourseInfo.getPlans();
-        for (CourseInfo.PlansBean plan : plans) {
+        String someWord = "";
 
+        int daysOrigin = 0;
+        int daysNew = 0;
+        for (CourseInfo.PlansBean plan : plans) {
+            daysOrigin++;
+            daysNew = 0;
             List<Integer> words = plan.getWords();
             oneStr.setLength(0);
             for (Integer wordId : words) {
@@ -285,6 +291,7 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
             }
 
             for (AddLearningDailyPlan addLearningDailyPlan : dailyPlans) {
+                daysNew++;
                 List<Integer> integerList = addLearningDailyPlan.getWords();
                 twoStr.setLength(0);
 
@@ -295,13 +302,20 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
 
                 if (TextUtils.equals(oneStr, twoStr)) {
                     alreadyExist = true;
+                    someWord = oneStr.toString();
                     break;
                 }
+            }
+
+            if (alreadyExist) {
+                break;
             }
         }
 
         if (alreadyExist) {
-            showAlertDialog("存在相同的排词！");
+            showAlertDialog("存在相同的排词！" + someWord
+                    + "\n原数据：第" + daysOrigin + "天"
+                    + "\n新数据：第" + daysNew + "天");
             return;
         }
 
