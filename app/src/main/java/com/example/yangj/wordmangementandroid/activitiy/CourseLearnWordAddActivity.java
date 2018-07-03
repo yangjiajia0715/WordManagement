@@ -1,9 +1,11 @@
 package com.example.yangj.wordmangementandroid.activitiy;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -17,10 +19,11 @@ import android.widget.Toast;
 import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.AddLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.CourseInfo;
-import com.example.yangj.wordmangementandroid.common.DeleteLearningDailyPlan;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
+
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -49,7 +52,10 @@ import okhttp3.ResponseBody;
 public class CourseLearnWordAddActivity extends BaseActivity implements AdapterView.OnItemSelectedListener {
     private static final int REQ_SELECT_LEARN_PLAN_FILE = 11;
     private static final String TAG = "CourseLearnWordAddActiv";
-//    private int
+    private boolean ignoreTheSameWord = false;
+    private int totalDays = 0;
+    private int errorDays = 0;
+    private List<String> questionNotEnough = new ArrayList<>();
 
     @BindView(R.id.spiner)
     Spinner mSpiner;
@@ -197,73 +203,15 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
             case R.id.btn_learn_plan_3:
                 int courseInfoId = mCurCourseInfo.getId();
 
-                if (courseInfoId == 3/* || courseInfoId == 4*/
-                        || courseInfoId == 5
-                        || courseInfoId == 6) {
-                    showAlertDialog("返回！courseInfoId=" + courseInfoId);
-                    return;
-                }
+//                if (courseInfoId == 3 || courseInfoId == 4
+//                        || courseInfoId == 5
+//                        || courseInfoId == 6) {
+//                    showAlertDialog("返回！courseInfoId=" + courseInfoId);
+//                    return;
+//                }
                 addLearnPlan(mLearningDailyPlanListFile);
                 break;
         }
-    }
-
-    private void deleteAll() {
-        if (mCurCourseInfo == null) {
-            return;
-        }
-
-        int courseInfoId = mCurCourseInfo.getId();
-        if (courseInfoId == 3 || courseInfoId == 4
-                || courseInfoId == 5
-                || courseInfoId == 7
-                || courseInfoId == 6) {
-            showAlertDialog("禁止删除！courseInfoId=" + courseInfoId);
-            return;
-        }
-
-        delIndex = 0;
-        List<CourseInfo.PlansBean> plans = mCurCourseInfo.getPlans();
-        Observable.fromIterable(plans)
-                .map(new Function<CourseInfo.PlansBean, List<Integer>>() {
-                    @Override
-                    public List<Integer> apply(CourseInfo.PlansBean plansBean) {
-                        return plansBean.getWords();
-                    }
-                })
-                .concatMap(new Function<List<Integer>, ObservableSource<ResponseBody>>() {
-                    @Override
-                    public ObservableSource<ResponseBody> apply(List<Integer> integers) {
-                        DeleteLearningDailyPlan dailyPlan = new DeleteLearningDailyPlan();
-                        dailyPlan.setCourseId(mCurCourseInfo.getId());
-                        dailyPlan.setIndex(delIndex++);
-                        return ApiClient.getInstance().deleteLearningDailyPlan(dailyPlan);
-                    }
-                })
-                .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<ResponseBody>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onNext(ResponseBody responseBody) {
-                        Log.d(TAG, "onNext: ");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d(TAG, "onError: ");
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        Log.d(TAG, "onComplete: ");
-                        showAlertDialog("删除成功！\n共" + delIndex);
-                    }
-                });
     }
 
     private void addLearnPlan(List<AddLearningDailyPlan> dailyPlans) {
@@ -272,6 +220,7 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
             return;
         }
 
+        totalDays = dailyPlans.size();
         boolean alreadyExist = false;
         StringBuilder oneStr = new StringBuilder();
         StringBuilder twoStr = new StringBuilder();
@@ -312,12 +261,31 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
             }
         }
 
-        if (alreadyExist) {
-            showAlertDialog("存在相同的排词！" + someWord
-                    + "\n原数据：第" + daysOrigin + "天"
-                    + "\n新数据：第" + daysNew + "天");
+        if (alreadyExist && !ignoreTheSameWord) {
+            new AlertDialog.Builder(this)
+                    .setMessage("存在相同的排词！" + someWord
+                            + "\n原数据：第" + daysOrigin + "天"
+                            + "\n新数据：第" + daysNew + "天")
+                    .setPositiveButton("知道了", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    })
+                    .setNegativeButton("仍然提交！", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ignoreTheSameWord = true;
+                            Toast.makeText(CourseLearnWordAddActivity.this, "请再次点击提交！", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        }
+                    })
+                    .create()
+                    .show();
             return;
         }
+
+        showProgressDialog();
 
         Observable.fromIterable(dailyPlans)
                 .concatMap(new Function<AddLearningDailyPlan, ObservableSource<ResponseBody>>() {
@@ -337,17 +305,48 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
                     @Override
                     public void onNext(ResponseBody responseBody) {
                         Log.d(TAG, "onNext: ");
+                        try {
+                            String string = responseBody.string();
+                            JSONObject jsonObject = new JSONObject(string);
+                            int code = jsonObject.optInt("code");
+                            if (code == 10051) {
+                                errorDays++;
+                                questionNotEnough.add(jsonObject.optString("data"));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     @Override
                     public void onError(Throwable e) {
+                        hideProgressDialog();
+                        errorDays++;
                         Log.d(TAG, "onError: " + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "onComplete: ");
-                        showAlertDialog("提交成功");
+                        hideProgressDialog();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("提交成功\n共");
+                        sb.append(totalDays);
+                        sb.append("天");
+                        sb.append("\n");
+                        sb.append("失败");
+                        sb.append(errorDays);
+                        sb.append("天");
+                        sb.append("\n");
+                        if (errorDays > 0 && !questionNotEnough.isEmpty()) {
+                            sb.append("question不全的单词：");
+                            sb.append("\n");
+                            for (String s : questionNotEnough) {
+                                sb.append(s);
+                                sb.append("\n");
+                            }
+                        }
+                        showAlertDialog(sb.toString());
                     }
                 });
     }
