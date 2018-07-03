@@ -58,8 +58,6 @@ public class MainActivity extends BaseActivity {
     private static final int PERMISSION = 262;
     private static final int REQ_SELECT_WORD_FILE = 11;
     private static final int REQ_SELECT_IMAGES_FILE = 22;
-    @BindView(R.id.btn_load_file)
-    Button mBtnLoadFile;
     @BindView(R.id.btn_upload_word)
     Button mBtnUpdateWord;
     @BindView(R.id.btn_upload_questions)
@@ -80,7 +78,6 @@ public class MainActivity extends BaseActivity {
     private List<Word> mWordListFile;
     //解析文件获取的同时保留练习信息，点击上传练习时再整合成Qustion
     private List<WordLoad> mWordLoadList = new ArrayList<>();
-    private String wordFilePath;
     private String mWordImagesDir;
     private OssTokenInfo mOssTokenInfo;
     private StringBuilder logStringBuilder = new StringBuilder();
@@ -223,7 +220,6 @@ public class MainActivity extends BaseActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.option_reset:
-                mBtnLoadFile.setEnabled(true);
                 mBtnUpdateWord.setEnabled(true);
                 mBtnUpdateQuestions.setEnabled(true);
                 Toast.makeText(this, "已重置！", Toast.LENGTH_SHORT).show();
@@ -246,11 +242,13 @@ public class MainActivity extends BaseActivity {
                         stringBuilder.append("--");
                     }
                     stringBuilder.append("\n");
+
                     for (String s : wordLoad.wrongOption1) {
                         stringBuilder.append(s);
                         stringBuilder.append("--");
                     }
                     stringBuilder.append("\n");
+
                     for (String s : wordLoad.wrongOption2) {
                         stringBuilder.append(s);
                         stringBuilder.append("--");
@@ -383,7 +381,7 @@ public class MainActivity extends BaseActivity {
     }
 
 
-    @OnClick({R.id.btn_load_file, R.id.btn_upload_questions_images,
+    @OnClick({R.id.btn_upload_questions_images,
             R.id.btn_select_word_file,
             R.id.btn_select_questions_images_file,
             R.id.btn_upload_word,
@@ -399,14 +397,6 @@ public class MainActivity extends BaseActivity {
             case R.id.btn_select_questions_images_file:
                 FileSelectorActivity.startForResult(this, REQ_SELECT_IMAGES_FILE);
                 break;
-            case R.id.btn_load_file:
-                mWordLoadList.clear();
-                mWordListFile = parseFile(wordFilePath, mWordLoadList);
-                if (mWordListFile != null && !mWordListFile.isEmpty()) {
-                    showAlertDialog("解析成功！\n共：" + mWordListFile.size() + "个单词");
-                    mBtnLoadFile.setEnabled(false);
-                }
-                break;
             case R.id.btn_upload_word:
                 if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
                     Toast.makeText(this, "No mListAllWordsRelease!", Toast.LENGTH_SHORT).show();
@@ -416,7 +406,7 @@ public class MainActivity extends BaseActivity {
                 if (checkWordList()) {
                     uploadWordList();
                 } else {
-                    mBtnLoadFile.setEnabled(true);
+
                 }
                 break;
             case R.id.btn_upload_questions_images:
@@ -921,6 +911,7 @@ public class MainActivity extends BaseActivity {
     }
 
     private void uploadWordList() {
+        showProgressDialog();
         mBtnUpdateWord.setEnabled(false);
 
         logStringBuilder.setLength(0);
@@ -1002,10 +993,12 @@ public class MainActivity extends BaseActivity {
                         logStringBuilder.append(e.getMessage());
                         logStringBuilder.append("\n");
                         updateWordFailedNumber++;
+                        hideProgressDialog();
                     }
 
                     @Override
                     public void onComplete() {
+                        hideProgressDialog();
                         showAlertDialog("上传完成！" +
                                 "\n共：" + updateWordTotalNumber +
                                 "\n跳过：" + updateWordSkipNumber +
@@ -1111,7 +1104,6 @@ public class MainActivity extends BaseActivity {
     boolean checkWordList() {
         if (mWordListFile == null || mWordListFile.isEmpty()) {
             showAlertDialog("请先解析文件！");
-//            showAlertDialog("请先解析文件，获取WordList");
             return false;
         }
         return true;
@@ -1162,8 +1154,13 @@ public class MainActivity extends BaseActivity {
                     showProgressDialog("文件不存在，或者不是文件：" + fileWord.getName());
                     return;
                 }
-                wordFilePath = pathWord;
-                mTvPath.setText("单词文件：" + fileWord.getName());
+                mTvPath.setText("单词文件：" + fileWord.getName() + "\n点击右上角作业查看解析出的单词");
+
+                mWordLoadList.clear();
+                mWordListFile = parseFile(pathWord, mWordLoadList);
+                if (mWordListFile != null && !mWordListFile.isEmpty()) {
+                    showAlertDialog("解析成功！\n共：" + mWordListFile.size() + "个单词，点击右上角作业查看");
+                }
                 break;
             case REQ_SELECT_IMAGES_FILE:
                 String pathImages = data.getStringExtra(Intent.EXTRA_TEXT);

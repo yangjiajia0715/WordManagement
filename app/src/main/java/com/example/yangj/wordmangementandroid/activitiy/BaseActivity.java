@@ -183,9 +183,9 @@ public abstract class BaseActivity extends AppCompatActivity {
                         wordLoad.word = word.getEnglishSpell();
                         break;
                     case 2:
-                        int index1 = lineStr.lastIndexOf("例句0：");
+                        int index1 = lineStr.lastIndexOf("例句：");
                         if (index1 >= 0) {
-                            word.setExampleSentence(lineStr.substring("例句0：".length(), lineStr.length()).trim());
+                            word.setExampleSentence(lineStr.substring("例句：".length(), lineStr.length()).trim());
                         } else {
                             word.setExampleSentence(lineStr.trim());
                         }

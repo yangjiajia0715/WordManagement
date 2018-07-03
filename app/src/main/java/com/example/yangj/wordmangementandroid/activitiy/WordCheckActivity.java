@@ -137,6 +137,7 @@ public class WordCheckActivity extends BaseActivity {
     }
 
     private void listAll() {
+        showProgressDialog();
         ApiClient.getInstance()
                 .listAll()
                 .subscribe(new Observer<ResultListInfo<Word>>() {
@@ -155,11 +156,13 @@ public class WordCheckActivity extends BaseActivity {
                     public void onError(Throwable e) {
                         Log.d(TAG, "onError: e " + e.getMessage());
 //                        showProgressDialog("listAll onError=" + e.getMessage());
+                        hideProgressDialog();
                     }
 
                     @Override
                     public void onComplete() {
 //                        checkWord(mWordList);
+                        hideProgressDialog();
                         mNeedUpdateList = checkWordTemp(mWordList);
                     }
                 });

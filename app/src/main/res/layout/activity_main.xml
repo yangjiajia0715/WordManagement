@@ -25,14 +25,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="选择单词文件" />
+            android:text="选择单词文件并解析" />
 
-        <Button
+       <!-- <Button
             android:id="@+id/btn_load_file"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="解析文件" />
+            android:text="解析文件" />-->
 
         <Button
             android:id="@+id/btn_upload_word_image"
