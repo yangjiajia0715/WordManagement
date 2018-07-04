@@ -359,23 +359,21 @@ public class MainActivity extends BaseActivity {
                 }
             } else {
                 strBuilderQ.append("没选项======");
+                strBuilderQ.append("\n");
             }
 
-            strBuilderQ.append("\n");
-
             List<Integer> answersIndex = qustion.getAnswersIndex();
-            if (answersIndex != null && answersIndex.size() == 1) {
+            if (answersIndex == null || answersIndex.isEmpty()) {
+                strBuilderQ.append("没答案================");
+                strBuilderQ.append("\n");
+            } else {
                 strBuilderQ.append("答案:");
                 for (Integer integer : answersIndex) {
                     strBuilderQ.append(((char) ('A' + integer)));
                     strBuilderQ.append(" ");
                 }
                 strBuilderQ.append("\n");
-            } else {
-                strBuilderQ.append("没答案================");
             }
-
-            strBuilderQ.append("\n");
         }
         return true;
     }
@@ -1026,6 +1024,9 @@ public class MainActivity extends BaseActivity {
 
         uploadQuestionTotalNumber = questions.size();
         uploadQuestionSkipedNumber = 0;
+
+        showProgressDialog();
+
         Observable.fromIterable(questions)
                 .filter(new Predicate<Question>() {
                     @Override
@@ -1089,11 +1090,13 @@ public class MainActivity extends BaseActivity {
                     @Override
                     public void onError(Throwable e) {
                         Log.d(TAG, "uploadQustions--onError e=" + e.getMessage());
+                        hideProgressDialog();
                     }
 
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "uploadQustions--onComplete");
+                        hideProgressDialog();
                         showAlertDialog("上传练习完成！" +
                                 "\n共：" + uploadQuestionTotalNumber +
                                 "\n跳过：" + uploadQuestionSkipedNumber);

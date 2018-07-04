@@ -618,6 +618,7 @@ public class QustionCheckActivity extends BaseActivity {
                     mStringBuilder.append("少于10个练习");
                 }
                 mStringBuilder.append("\n");
+                mStringBuilder.append("\n");
             }
 
 //            if (!mQuestionsGroup.isEmpty()) {
@@ -663,6 +664,7 @@ public class QustionCheckActivity extends BaseActivity {
             return;
         }
 
+        showProgressDialog();
         Observable.fromIterable(needUpdateQustions)
 //                .take(2)
                 .concatMap(new Function<Question, ObservableSource<ResponseBody>>() {
@@ -685,6 +687,7 @@ public class QustionCheckActivity extends BaseActivity {
                     public void onNext(ResponseBody responseBody) {
                         Log.d(TAG, "onNext: ");
                         needUpdateQustionsSuccessNumber++;
+                        hideProgressDialog();
                     }
 
                     @Override
@@ -694,6 +697,7 @@ public class QustionCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
+                        hideProgressDialog();
                         showAlertDialog("更新练习成功 \n共：" + needUpdateQustionsSuccessNumber);
                     }
                 });
