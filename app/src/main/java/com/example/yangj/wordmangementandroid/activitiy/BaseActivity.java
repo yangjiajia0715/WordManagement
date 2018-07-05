@@ -300,6 +300,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                         String wordSpell = line.substring(number.length(), lastIndexOf).trim();
                         wordSpell = wordSpell.replaceAll(" ", "");
                         wordSpell = wordSpell.replaceAll("-", "");
+                        wordSpell = wordSpell.replaceAll(".", "");
                         boolean matches = wordSpell.matches("^[a-zA-Z]*");
                         if (!matches) {
                             showAlertDialog("文件格式不正确：\n单词含有非英文字符！\n行号：" + lineNumber);
