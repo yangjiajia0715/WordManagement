@@ -87,6 +87,7 @@ public class FileRenameActivity extends BaseActivity {
         for (File wordDir : files) {
             String name = wordDir.getName().trim();
             String wordSpell = name.substring(name.indexOf(" ")).trim();
+            String lastPart = name.substring(name.lastIndexOf(" ")).trim();
 
             File[] listFiles = wordDir.listFiles();
             if (listFiles == null || listFiles.length == 0) {
