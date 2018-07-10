@@ -53,6 +53,12 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
+/**
+ * sentence = sentence.replaceAll("’s ", "'s ");
+ sentence = sentence.replaceAll("’re ", "'re ");
+ sentence = sentence.replaceAll("’m ", "'m ");
+ sentence = sentence.replaceAll("’t ", "'t ");
+ */
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION = 262;
@@ -289,6 +295,20 @@ public class MainActivity extends BaseActivity {
                 if (question.getOptions().size() != 3) {
                     strBuilderQ.append("wordId=");
                     strBuilderQ.append(question.getWordId());
+                    Word wordFind = null;
+                    for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
+                        Word word = mListAllWordsRelease.get(i);
+                        if (word.id == question.getWordId()) {
+                            wordFind = word;
+                            break;
+                        }
+                    }
+                    strBuilderQ.append(" ");
+                    if (wordFind != null) {
+                        strBuilderQ.append(wordFind.getEnglishSpell());
+                    } else {
+                        strBuilderQ.append("Not Find!");
+                    }
                     strBuilderQ.append(" 词图关联 不够3张图片！");
                     strBuilderQ.append("\n");
                     unCompleteCount++;
@@ -503,9 +523,14 @@ public class MainActivity extends BaseActivity {
 
         for (Word word : mWordListFile) {
             int wordId = 0;
+            String spell = word.getEnglishSpell().trim();
+            spell = spell.replaceAll("’s ", "'s ");
+            spell = spell.replaceAll("’re ", "'re ");
+            spell = spell.replaceAll("’m ", "'m ");
+            spell = spell.replaceAll("’t ", "'t ");
             for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
                 Word word1 = mListAllWordsRelease.get(i);
-                if (word.getEnglishSpell().equalsIgnoreCase(word1.getEnglishSpell())) {
+                if (spell.equalsIgnoreCase(word1.getEnglishSpell())) {
                     wordId = word1.id;
                     word.setRectangleImage(word1.getRectangleImage());
                     word.setImage(word1.getImage());
@@ -514,21 +539,21 @@ public class MainActivity extends BaseActivity {
             }
 
             if (wordId == 0) {
-                showAlertDialog("预创建questions失败！wordId == 0,word=" + word.getEnglishSpell());
+                showAlertDialog("预创建questions失败！wordId == 0,word=" + spell);
                 return;
             }
 
             //用于填充数据！
             String rectangleImage = word.getRectangleImage();
             if (!URLUtil.isNetworkUrl(rectangleImage)) {
-                showAlertDialog("单词：" + word.getEnglishSpell() + " 没有矩形图片！");
+                showAlertDialog("单词：" + spell + " 没有矩形图片！");
                 return;
             }
 
             //用于填充数据！
             String image = word.getImage();
             if (!URLUtil.isNetworkUrl(image)) {
-                showAlertDialog("单词：" + word.getEnglishSpell() + " 没有正方形图片！");
+                showAlertDialog("单词：" + spell + " 没有正方形图片！");
                 return;
             }
 
@@ -660,16 +685,16 @@ public class MainActivity extends BaseActivity {
                 if ("png".equals(suffix)) {//image
                     if (mListAllWordsRelease != null) {
                         String wordSpell = fileName.substring(0, fileName.indexOf("-rect-"));
-                        Word word = null;
+                        Word wordFind = null;
                         for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
                             Word wordI = mListAllWordsRelease.get(i);
                             if (TextUtils.equals(wordI.getEnglishSpell().toLowerCase(), wordSpell.toLowerCase())) {
-                                word = wordI;
+                                wordFind = wordI;
                                 break;
                             }
                         }
 
-                        if (word == null || word.id <= 0) {
+                        if (wordFind == null || wordFind.id <= 0) {
                             Log.e(TAG, "uploadQustionFile 返回: " + wordSpell);
                             return;
                         }
@@ -677,7 +702,7 @@ public class MainActivity extends BaseActivity {
                         int index = 0;
                         for (Question question : mQuestionListOnlyImages) {
                             index++;
-                            if (question.getWordId() == word.id) {
+                            if (question.getWordId() == wordFind.id) {
                                 if (fileName.contains("-rect-right-pic-") && question.getType().equals(Question.Type.MATCH_WORD_IMAGE)) {
                                     question.getOptions().add(url);
                                 }

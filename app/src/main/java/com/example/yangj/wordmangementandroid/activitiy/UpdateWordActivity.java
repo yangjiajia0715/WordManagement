@@ -196,6 +196,7 @@ public class UpdateWordActivity extends BaseActivity {
             Log.d(TAG, "uploadWordImages: getName=" + file1Name);
         }
 
+        showProgressDialog();
         Observable.fromArray(listFiles)
                 .concatMap(new Function<File, ObservableSource<File>>() {
                     @Override
@@ -238,6 +239,7 @@ public class UpdateWordActivity extends BaseActivity {
                     @Override
                     public void onComplete() {
                         Log.d(TAG, "onComplete: ");
+                        hideProgressDialog();
                         showAlertDialog("上传成功");
                     }
                 });

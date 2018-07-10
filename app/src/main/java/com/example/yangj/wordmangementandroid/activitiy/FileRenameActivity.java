@@ -21,7 +21,15 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 /**
- * Created by yangjiajia on 2018/6/29.
+ * /**
+ * 图片命名规则：egg
+ * egg-rect-right-pic-1.png
+ * egg-rect-right-pic-2.png
+ * egg-rect-right-pic-3.png
+ * egg-rect-wrong-pic.png
+ * egg-square-pic.png
+ *
+ * @see UpdateWordActivity#uploadWordImages(java.lang.String)
  */
 public class FileRenameActivity extends BaseActivity {
     private static final int REQ_SELECT_RENAME = 755;
@@ -87,7 +95,15 @@ public class FileRenameActivity extends BaseActivity {
         for (File wordDir : files) {
             String name = wordDir.getName().trim();
             String wordSpell = name.substring(name.indexOf(" ")).trim();
-            String lastPart = name.substring(name.lastIndexOf(" ")).trim();
+            int lastIndexOf = name.lastIndexOf(" ");
+            if (lastIndexOf > 0 && lastIndexOf > name.indexOf(" ")) {
+                String lastPart = name.substring(lastIndexOf).trim();
+                if (!lastPart.matches("[a-zA-Z]*")) {
+                    Log.d(TAG, "rename: 目录名最后几个字符不是英语已截取！截取前：" + wordSpell);
+                    wordSpell = wordSpell.substring(0, lastIndexOf);
+                    Log.d(TAG, "rename: 目录名最后几个字符不是英语已截取！截取后：" + wordSpell);
+                }
+            }
 
             File[] listFiles = wordDir.listFiles();
             if (listFiles == null || listFiles.length == 0) {
@@ -117,7 +133,7 @@ public class FileRenameActivity extends BaseActivity {
                         existSquare = true;
                     } else {
                         index++;
-                        fileRename = wordSpell + "-rect-right-pic" + index + ".png";
+                        fileRename = wordSpell + "-rect-right-pic-" + index + ".png";
                         existRectRight = true;
                     }
                 }

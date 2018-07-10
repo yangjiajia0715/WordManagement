@@ -408,6 +408,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             bufferedReader = new BufferedReader(fileReader);
             String line;
             int index = 0;
+            int lineNumber = 0;
             //之前会校验文件格式，所以这里大胆使用
             while ((line = bufferedReader.readLine()) != null) {
                 String lineStr = line.trim();
@@ -416,6 +417,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                     continue;
                 }
                 index++;
+                lineNumber++;
                 Log.d(TAG, "loadFile: line=" + lineStr);
                 switch (index) {
                     case 1:
@@ -437,6 +439,10 @@ public abstract class BaseActivity extends AppCompatActivity {
                                 if (wordSpell.contains("=")) {
                                     wordSpell = wordSpell.replaceAll("=", " ");
                                 }
+                                wordSpell = wordSpell.replaceAll("’s ", "'s ");
+                                wordSpell = wordSpell.replaceAll("’re ", "'re ");
+                                wordSpell = wordSpell.replaceAll("’m ", "'m ");
+                                wordSpell = wordSpell.replaceAll("’t ", "'t ");
                                 boolean exist = false;
                                 for (Word word : wordList) {
                                     if (word.getEnglishSpell().equalsIgnoreCase(wordSpell)) {
@@ -447,7 +453,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                                 }
                                 if (!exist) {
                                     Log.e(TAG, "parseLearnPlanFile: 没找到单词：" + wordSpell);
-                                    showAlertDialog("单词不存在：" + wordSpell);
+                                    showAlertDialog("单词不存在：" + wordSpell + ",lineNumber=" + lineNumber);
                                     return null;
                                 }
                             }
