@@ -685,6 +685,10 @@ public class MainActivity extends BaseActivity {
                 if ("png".equals(suffix)) {//image
                     if (mListAllWordsRelease != null) {
                         String wordSpell = fileName.substring(0, fileName.indexOf("-rect-"));
+                        wordSpell = wordSpell.replaceAll("’s ", "'s ");
+                        wordSpell = wordSpell.replaceAll("’re ", "'re ");
+                        wordSpell = wordSpell.replaceAll("’m ", "'m ");
+                        wordSpell = wordSpell.replaceAll("’t ", "'t ");
                         Word wordFind = null;
                         for (int i = mListAllWordsRelease.size() - 1; i >= 0; i--) {
                             Word wordI = mListAllWordsRelease.get(i);

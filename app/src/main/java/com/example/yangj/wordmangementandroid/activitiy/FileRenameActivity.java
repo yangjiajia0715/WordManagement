@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.yangj.wordmangementandroid.R;
+import com.example.yangj.wordmangementandroid.util.StringUtil;
 
 import java.io.File;
 
@@ -104,6 +105,8 @@ public class FileRenameActivity extends BaseActivity {
                     Log.d(TAG, "rename: 目录名最后几个字符不是英语已截取！截取后：" + wordSpell);
                 }
             }
+
+            wordSpell = StringUtil.replaceAll(wordSpell);
 
             File[] listFiles = wordDir.listFiles();
             if (listFiles == null || listFiles.length == 0) {

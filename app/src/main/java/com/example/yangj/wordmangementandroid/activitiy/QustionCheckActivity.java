@@ -58,6 +58,7 @@ public class QustionCheckActivity extends BaseActivity {
     private List<Question> mNeedUpdateWords = new ArrayList<>();
     int needUpdateQustionsSuccessNumber = 0;
     int lineNumbers = 0;
+    int index = 0;
 
     public static void start(Context context) {
         Intent starter = new Intent(context, QustionCheckActivity.class);
@@ -251,6 +252,8 @@ public class QustionCheckActivity extends BaseActivity {
             }
 
             if (word == null) {
+                appendIndex();
+
                 mStringBuilder.append("没有对应的单词! wordId:");
                 mStringBuilder.append(question.getWordId());
                 mStringBuilder.append(" questionId:");
@@ -268,6 +271,8 @@ public class QustionCheckActivity extends BaseActivity {
                     if (options != null && options.size() == 3) {
                         for (String option : options) {
                             if (!URLUtil.isNetworkUrl(option)) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 词图关联,url不对！word:");
@@ -276,6 +281,8 @@ public class QustionCheckActivity extends BaseActivity {
                             }
                         }
                     } else {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 词图关联,选项不全！word:");
@@ -287,12 +294,16 @@ public class QustionCheckActivity extends BaseActivity {
                     if (options != null && options.size() == 2) {
                         for (String option : options) {
                             if (TextUtils.isEmpty(option)) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 词意关联,选项不能为空！word:");
                                 mStringBuilder.append(englishSpell);
                                 mStringBuilder.append("\n");
                             } else if (option.matches("^[a-zA-Z]*")) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" ");
@@ -303,6 +314,8 @@ public class QustionCheckActivity extends BaseActivity {
                             }
                         }
                     } else {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 词意关联,选项不全！word:");
@@ -314,6 +327,8 @@ public class QustionCheckActivity extends BaseActivity {
                     if (options != null && options.size() == 2) {
                         for (String option : options) {
                             if (!URLUtil.isNetworkUrl(option)) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 听词选图,url不对！word:");
@@ -322,6 +337,8 @@ public class QustionCheckActivity extends BaseActivity {
                             }
                         }
                     } else {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 听词选图,选项不全！word:");
@@ -334,6 +351,8 @@ public class QustionCheckActivity extends BaseActivity {
                         boolean rightItem = false;
                         for (String option : options) {
                             if (TextUtils.isEmpty(option)) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 看图选词,选项不能为空！word:");
@@ -368,6 +387,8 @@ public class QustionCheckActivity extends BaseActivity {
                             question.setOptions(optionsNew);
                             mNeedUpdateWords.add(question);/////////////////////add
 
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 看图选词,选项和单词不匹配！word:");
@@ -381,6 +402,8 @@ public class QustionCheckActivity extends BaseActivity {
                             mStringBuilder.append("\n");
                         }
                     } else {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 看图选词,选项不全！word:");
@@ -390,6 +413,8 @@ public class QustionCheckActivity extends BaseActivity {
                     break;
                 case CHOOSE_WORD_BY_LISTEN_SENTENCE:
                     if (title == null) {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 听文选词No QuestionTitle！word:");
@@ -413,6 +438,9 @@ public class QustionCheckActivity extends BaseActivity {
                                 title.setTitle(titleTitle);
                                 question.setTitle(title);
                                 mNeedUpdateWords.add(question);///////////add
+
+                                appendIndex();
+
                                 mStringBuilder.append("听文选词 含有中文 ' 已纠正,请提交！word:");
                                 mStringBuilder.append(word.getEnglishSpell());
                                 mStringBuilder.append(" qId:");
@@ -424,6 +452,8 @@ public class QustionCheckActivity extends BaseActivity {
                                 mStringBuilder.append("\n");
                             }
                         } else {
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append("听文选词No QuestionTitle！");
@@ -436,6 +466,8 @@ public class QustionCheckActivity extends BaseActivity {
                     break;
                 case CHOOSE_WORD_BY_READ_SENTENCE://看句选词
                     if (title == null) {
+                        appendIndex();
+
                         lineNumbers++;
                         mStringBuilder.append(lineNumbers);
                         mStringBuilder.append(" 看句选词 No QuestionTitle！word:");
@@ -459,6 +491,8 @@ public class QustionCheckActivity extends BaseActivity {
                                 title.setTitle(titleTitle);
                                 question.setTitle(title);
                                 mNeedUpdateWords.add(question);//////////add
+                                appendIndex();
+
                                 mStringBuilder.append(" 看句选词 含有中文 ' 已纠正,请提交！word:");
                                 mStringBuilder.append(word.getEnglishSpell());
                                 mStringBuilder.append("\n");
@@ -468,6 +502,9 @@ public class QustionCheckActivity extends BaseActivity {
                                 mStringBuilder.append("\n");
                             }
                         } else {
+
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 看句选词No QuestionTitle！");
@@ -495,6 +532,8 @@ public class QustionCheckActivity extends BaseActivity {
                             question.setOptions(options);
                             mNeedUpdateWords.add(question);///////////add
 
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 拼写答案含空格，已纠正！请更新");
@@ -511,6 +550,8 @@ public class QustionCheckActivity extends BaseActivity {
 
                             if (!englishSpell.contains(" ") && !englishSpell.contains("-")) {//带空格的不处理
                                 if (!TextUtils.equals(spell, englishSpell)) {
+                                    appendIndex();
+
                                     lineNumbers++;
                                     mStringBuilder.append(lineNumbers);
                                     mStringBuilder.append(" 拼写答案不对！答案：");
@@ -522,6 +563,8 @@ public class QustionCheckActivity extends BaseActivity {
                             }
                         } else {
                             if (word.getEnglishSpell().length() != 1) {
+                                appendIndex();
+
                                 lineNumbers++;
                                 mStringBuilder.append(lineNumbers);
                                 mStringBuilder.append(" 拼写答案不全！");
@@ -534,6 +577,9 @@ public class QustionCheckActivity extends BaseActivity {
                         //选项是否有相同的？
                         Set<String> optionSet = new HashSet<>(options);
                         if (optionSet.size() != 4) {
+
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 拼写选项有相同项！");
@@ -543,6 +589,8 @@ public class QustionCheckActivity extends BaseActivity {
                         }
                     } else {
                         if (word.getEnglishSpell().length() != 1) {
+                            appendIndex();
+
                             lineNumbers++;
                             mStringBuilder.append(lineNumbers);
                             mStringBuilder.append(" 拼写选项不全！");
@@ -570,6 +618,8 @@ public class QustionCheckActivity extends BaseActivity {
                 mStringBuilder.append("\n");
             } else if (mQuestionsGroup.size() != 10) {
                 Question question = (Question) mQuestionsGroup.get(0);
+
+                appendIndex();
 
                 mStringBuilder.append("wordId:");
                 mStringBuilder.append(question.getWordId());
@@ -635,6 +685,13 @@ public class QustionCheckActivity extends BaseActivity {
 //            }
             mTvCheckQuestionResult.setText(toString);
         }
+    }
+
+    private void appendIndex() {
+        index++;
+        mStringBuilder.append("index=");
+        mStringBuilder.append(index);
+        mStringBuilder.append("\n");
     }
 
     private void checkAndCompleteQuestionTitle(Question question, Word word) {

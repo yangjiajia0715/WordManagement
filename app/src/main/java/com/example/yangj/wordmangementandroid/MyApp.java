@@ -1,6 +1,9 @@
 package com.example.yangj.wordmangementandroid;
 
+import android.app.Activity;
 import android.app.Application;
+import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.alibaba.sdk.android.oss.ClientConfiguration;
@@ -20,6 +23,8 @@ import io.reactivex.disposables.Disposable;
  */
 public class MyApp extends Application {
 
+    private static final String TAG = "MyApp";
+
     public OssTokenInfo getOssTokenInfo() {
         return mOssTokenInfo;
     }
@@ -37,6 +42,8 @@ public class MyApp extends Application {
         super.onCreate();
 
         getOssToken();
+
+        registerCallbacks();
     }
 
     private void getOssToken() {
@@ -93,5 +100,47 @@ public class MyApp extends Application {
 
     }
 
+
+    /**
+     * 测试用
+     */
+    private void registerCallbacks() {
+        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+                Log.d(TAG, "MyApplication--onActivityCreated: " + activity.getClass().getSimpleName());
+            }
+
+            @Override
+            public void onActivityStarted(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityPaused(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivityStopped(Activity activity) {
+
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+            }
+
+            @Override
+            public void onActivityDestroyed(Activity activity) {
+                Log.d(TAG, "MyApplication--onActivityDestroyed: " + activity.getClass().getSimpleName());
+            }
+        });
+    }
 
 }
