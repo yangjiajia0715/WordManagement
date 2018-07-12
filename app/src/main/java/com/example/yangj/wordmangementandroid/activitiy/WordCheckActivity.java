@@ -73,7 +73,7 @@ public class WordCheckActivity extends BaseActivity {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_word_check:
-
+                mNeedUpdateList = checkWordTemp(mWordList);
                 break;
             case R.id.btn_word_check_update_uncomplete:
 //                List<Word> needUpdateList = checkWordTemp(mWordList);
@@ -161,9 +161,9 @@ public class WordCheckActivity extends BaseActivity {
 
                     @Override
                     public void onComplete() {
-//                        checkWord(mWordList);
+                        checkWord(mWordList);
                         hideProgressDialog();
-                        mNeedUpdateList = checkWordTemp(mWordList);
+//                        mNeedUpdateList = checkWordTemp(mWordList);
                     }
                 });
     }

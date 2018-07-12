@@ -95,13 +95,15 @@ public class FileRenameActivity extends BaseActivity {
         int renameUnCompleteCount = 0;
         for (File wordDir : files) {
             String name = wordDir.getName().trim();
-            String wordSpell = name.substring(name.indexOf(" ")).trim();
+            int firstIndexOf = name.indexOf(" ");
             int lastIndexOf = name.lastIndexOf(" ");
-            if (lastIndexOf > 0 && lastIndexOf > name.indexOf(" ")) {
+
+            String wordSpell = name.substring(firstIndexOf).trim();
+            if (lastIndexOf > 0 && lastIndexOf > firstIndexOf) {
                 String lastPart = name.substring(lastIndexOf).trim();
                 if (!lastPart.matches("[a-zA-Z]*")) {
                     Log.d(TAG, "rename: 目录名最后几个字符不是英语已截取！截取前：" + wordSpell);
-                    wordSpell = wordSpell.substring(0, lastIndexOf);
+                    wordSpell = name.substring(firstIndexOf, lastIndexOf).trim();
                     Log.d(TAG, "rename: 目录名最后几个字符不是英语已截取！截取后：" + wordSpell);
                 }
             }
@@ -170,7 +172,7 @@ public class FileRenameActivity extends BaseActivity {
         showAlertDialog("完成！\n共：" + renameTotalCount
                 + "\n命名成功：" + renameSuccessCount
                 + "\n命名失败：" + renameSkipCount
-                + "\n信息不完整：" + renameUnCompleteCount);
+                + "\n图片资源不全：" + renameUnCompleteCount);
 
     }
 

@@ -9,6 +9,6 @@ public class StringUtil {
         sentence = sentence.replaceAll("’re ", "'re ");
         sentence = sentence.replaceAll("’m ", "'m ");
         sentence = sentence.replaceAll("’t ", "'t ");
-        return sentence;
+        return sentence.trim();
     }
 }

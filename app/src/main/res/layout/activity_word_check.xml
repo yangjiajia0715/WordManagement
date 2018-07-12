@@ -8,7 +8,7 @@
         android:id="@+id/btn_word_check"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="检查单词是否完整：拼写、音频、图片等" />
+        android:text="仅仅检查单词引号" />
 
     <Button
         android:id="@+id/btn_word_check_update_uncomplete"
