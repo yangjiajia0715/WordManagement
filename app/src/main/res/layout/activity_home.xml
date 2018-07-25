@@ -38,8 +38,8 @@
     <Button
         android:id="@+id/btn_course_add"
         android:layout_width="match_parent"
-        android:layout_marginTop="50dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
         android:text="课程排词 添加" />
 
     <Button
@@ -53,5 +53,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="重命名文件" />
+
+    <Button
+        android:id="@+id/btn_word_district"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="单词去重" />
 
 </LinearLayout>
