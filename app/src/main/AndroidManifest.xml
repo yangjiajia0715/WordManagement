@@ -40,7 +40,7 @@
         <activity android:name=".activitiy.CourseCheckActivity" />
         <activity android:name=".activitiy.CourseLearnWordAddActivity" />
         <activity android:name=".activitiy.FileRenameActivity" />
-        <activity android:name=".activitiy.DistrinctActivity" />
+        <activity android:name=".activitiy.DistinctActivity" />
     </application>
 
 </manifest>

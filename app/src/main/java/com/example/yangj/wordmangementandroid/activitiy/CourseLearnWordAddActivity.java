@@ -211,6 +211,8 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
 //                }
                 addLearnPlan(mLearningDailyPlanListFile);
                 break;
+            default:
+                break;
         }
     }
 
@@ -372,6 +374,8 @@ public class CourseLearnWordAddActivity extends BaseActivity implements AdapterV
                 buildLearnPlanInfo(mLearningDailyPlanListFile);
                 mLearnPlanPath = pathWord;
                 mTvLearnPlanPath.setText("排词文件：" + fileWord.getName());
+                break;
+            default:
                 break;
         }
     }

@@ -1,10 +1,12 @@
 package com.example.yangj.wordmangementandroid.activitiy;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -15,11 +17,15 @@ import com.example.yangj.wordmangementandroid.R;
 import com.example.yangj.wordmangementandroid.common.ResultListInfo;
 import com.example.yangj.wordmangementandroid.common.Word;
 import com.example.yangj.wordmangementandroid.retrofit.ApiClient;
+import com.example.yangj.wordmangementandroid.util.FileUtil;
+
+import org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,8 +39,9 @@ import io.reactivex.disposables.Disposable;
  * @author yangjiajia
  * @date 2018/7/25
  */
-public class DistrinctActivity extends BaseActivity {
-    private static final String TAG = "DistrinctActivity";
+public class DistinctActivity extends BaseActivity {
+    private static final String TAG = "DistinctActivity";
+    private static final int REQ_SELECT_DISTRNCT_FILE = 110;
     @BindView(R.id.btn_word_district_1)
     Button mBtnWordDistrict1;
     @BindView(R.id.btn_word_district_2)
@@ -44,7 +51,7 @@ public class DistrinctActivity extends BaseActivity {
     private List<Word> mListAllWordsRelease;
 
     public static void start(Context context) {
-        Intent starter = new Intent(context, DistrinctActivity.class);
+        Intent starter = new Intent(context, DistinctActivity.class);
         context.startActivity(starter);
     }
 
@@ -53,8 +60,14 @@ public class DistrinctActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_distrinct);
         ButterKnife.bind(this);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 111);
+        listAll();
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
 
     List<Word> parseDistrictFile(String path) {
         if (TextUtils.isEmpty(path)) {
@@ -90,11 +103,11 @@ public class DistrinctActivity extends BaseActivity {
                 int indexOf = lineStr.indexOf(",");
                 Word word = new Word();
                 String engSpell = lineStr.substring(0, indexOf).trim();
-                String chineseSpell = lineStr.substring(indexOf, lineStr.length()).trim();
+                String chineseSpell = lineStr.substring(indexOf + 1, lineStr.length()).trim();
 
                 word.setEnglishSpell(engSpell);
                 word.setChineseSpell(chineseSpell);
-                Log.d(TAG, "loadFile: engSpell=" + engSpell + ",chineseSpell=" + chineseSpell);
+                Log.d(TAG, "loadFile: engSpell=" + engSpell + "  chineseSpell=" + chineseSpell);
 
                 wordList.add(word);
             }
@@ -116,30 +129,68 @@ public class DistrinctActivity extends BaseActivity {
     public void onViewClicked(View view) {
         switch (view.getId()) {
             case R.id.btn_word_district_1:
-                distrinct();
+
                 break;
             case R.id.btn_word_district_2:
+
                 break;
             case R.id.btn_word_district_3:
+
                 break;
             default:
                 break;
         }
     }
 
-    private void distrinct() {
+    private void distinct(List<Word> newWordList) {
+
         if (mListAllWordsRelease == null || mListAllWordsRelease.isEmpty()) {
-            Toast.makeText(this, "列表为空", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "已有单词列表为空", Toast.LENGTH_SHORT).show();
+            showAlertDialog("已有单词列表为空");
             return;
         }
 
-        File file = Environment.getExternalStorageDirectory();
-        file = new File(file, "wordManagement");
-        String path = file.getPath() + File.separator + "去重之前单词列表文件.txt";
-        List<Word> newWordList = parseDistrictFile(path);
+        if (newWordList == null || newWordList.isEmpty()) {
+            showAlertDialog("解析列表为空");
+            return;
+        }
+
+        List<Word> distinctList = new ArrayList<>();
+
+        for (Word wordNew : newWordList) {
+            boolean exist = false;
+            for (Word wordOrigin : mListAllWordsRelease) {
+                //单词拼写相同
+                if (TextUtils.equals(wordNew.getEnglishSpell().toLowerCase(), wordOrigin.getEnglishSpell().toLowerCase())) {
+                    exist = true;
+                    break;
+                }
+            }
+            if (!exist) {
+                distinctList.add(wordNew);
+            }
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Word word : distinctList) {
+            stringBuilder.append(word.getEnglishSpell());
+            stringBuilder.append(" ");
+            stringBuilder.append(word.getChineseSpell());
+            stringBuilder.append("\n");
+        }
+
+        File outFile = new File(FileUtil.getDistinctOutFilePath());
+        try {
+            FileUtils.write(outFile, stringBuilder.toString(), Charset.forName("UTF-8"), false);
+            showAlertDialog("去重文件已保存，fileName:" + outFile.getName());
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlertDialog("去重文件保存失败，e:" + e.getMessage());
+        }
     }
 
     private void listAll() {
+        showProgressDialog();
         ApiClient.getInstance()
                 .listAll()
                 .subscribe(new Observer<ResultListInfo<Word>>() {
@@ -151,19 +202,45 @@ public class DistrinctActivity extends BaseActivity {
                     @Override
                     public void onNext(ResultListInfo<Word> wordResultListInfo) {
                         mListAllWordsRelease = wordResultListInfo.getData();
-//                        showProgressDialog("listAll size=" + mListAllWordsRelease.size());
                     }
 
                     @Override
                     public void onError(Throwable e) {
+                        hideProgressDialog();
                         Log.d(TAG, "onError: e " + e.getMessage());
-//                        showProgressDialog("listAll onError=" + e.getMessage());
+                        showAlertDialog("获取单词列表失败！");
                     }
 
                     @Override
                     public void onComplete() {
-
+                        hideProgressDialog();
+                        FileSelectorActivity.startForResult(DistinctActivity.this, REQ_SELECT_DISTRNCT_FILE);
                     }
                 });
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK) {
+            Toast.makeText(this, "未选择", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        switch (requestCode) {
+            case REQ_SELECT_DISTRNCT_FILE:
+                String pathWord = data.getStringExtra(Intent.EXTRA_TEXT);
+                File fileWord = new File(pathWord);
+                if (!fileWord.exists() || !fileWord.isFile()) {
+                    showProgressDialog("文件不存在，或者不是文件：" + fileWord.getName());
+                    return;
+                }
+                List<Word> wordList = parseDistrictFile(fileWord.getPath());
+                distinct(wordList);
+                break;
+            default:
+                break;
+        }
     }
 }

@@ -66,7 +66,7 @@ public class HomeActiivity extends AppCompatActivity {
                 FileRenameActivity.start(this);
                 break;
             case R.id.btn_word_district:
-                DistrinctActivity.start(this);
+                DistinctActivity.start(this);
                 break;
             default:
                 break;
