@@ -157,6 +157,8 @@ public class DistinctActivity extends BaseActivity {
 
         List<Word> distinctList = new ArrayList<>();
 
+        List<Word> tipsWords = new ArrayList<>();
+
         for (Word wordNew : newWordList) {
             boolean exist = false;
             for (Word wordOrigin : mListAllWordsRelease) {
@@ -166,7 +168,32 @@ public class DistinctActivity extends BaseActivity {
                     break;
                 }
             }
+
             if (!exist) {
+                String engSpell = wordNew.getEnglishSpell().toLowerCase();
+                if (engSpell.endsWith("s") || engSpell.endsWith("es") && engSpell.length() >= 3) {
+                    //加s,es等 或者去掉 重新判断
+                    boolean innerExist = false;
+                    for (Word wordOrigin : mListAllWordsRelease) {
+                        //单词拼写相同
+                        String engSpellOrigin = wordOrigin.getEnglishSpell().toLowerCase();
+
+                        if (TextUtils.equals(engSpell.substring(0, engSpell.length() -1), engSpellOrigin)) {
+                            innerExist = true;
+                            tipsWords.add(wordNew);
+                        }
+
+                        if (innerExist) {
+                            break;
+                        }
+
+                        if (TextUtils.equals(engSpell.substring(0, engSpell.length() -2), engSpellOrigin)) {
+                            innerExist = true;
+                            tipsWords.add(wordNew);
+                        }
+
+                    }
+                }
                 distinctList.add(wordNew);
             }
         }
@@ -182,7 +209,23 @@ public class DistinctActivity extends BaseActivity {
         File outFile = new File(FileUtil.getDistinctOutFilePath());
         try {
             FileUtils.write(outFile, stringBuilder.toString(), Charset.forName("UTF-8"), false);
-            showAlertDialog("去重文件已保存，fileName:" + outFile.getName());
+
+            StringBuilder tipsSb = new StringBuilder();
+            tipsSb.append("文件已保存! fileName:");
+            tipsSb.append("\n");
+            tipsSb.append(outFile.getName());
+            tipsSb.append("\n");
+            tipsSb.append("\n");
+            if (!tipsWords.isEmpty()) {
+                tipsSb.append("以下单词请人工检查：e,es结尾的");
+                tipsSb.append("\n");
+            }
+            for (Word tipsWord : tipsWords) {
+                tipsSb.append(tipsWord.getEnglishSpell());
+                tipsSb.append("\n");
+            }
+
+            showAlertDialog(tipsSb.toString());
         } catch (IOException e) {
             e.printStackTrace();
             showAlertDialog("去重文件保存失败，e:" + e.getMessage());
