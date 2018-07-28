@@ -41,6 +41,7 @@
         <activity android:name=".activitiy.CourseLearnWordAddActivity" />
         <activity android:name=".activitiy.FileRenameActivity" />
         <activity android:name=".activitiy.DistinctActivity" />
+        <activity android:name=".activitiy.GlideActivity" />
     </application>
 
 </manifest>

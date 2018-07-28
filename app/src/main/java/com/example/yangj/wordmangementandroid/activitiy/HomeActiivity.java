@@ -38,6 +38,7 @@ public class HomeActiivity extends AppCompatActivity {
             , R.id.btn_course_check
             , R.id.btn_rename_file
             , R.id.btn_word_district
+            , R.id.btn_glide
             , R.id.btn_word_check})
     public void onViewClicked(View view) {
         switch (view.getId()) {
@@ -67,6 +68,9 @@ public class HomeActiivity extends AppCompatActivity {
                 break;
             case R.id.btn_word_district:
                 DistinctActivity.start(this);
+                break;
+            case R.id.btn_glide:
+                GlideActivity.start(this);
                 break;
             default:
                 break;
