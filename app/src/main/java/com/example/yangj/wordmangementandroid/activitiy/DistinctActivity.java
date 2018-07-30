@@ -180,6 +180,7 @@ public class DistinctActivity extends BaseActivity {
 
                         if (TextUtils.equals(engSpell.substring(0, engSpell.length() -1), engSpellOrigin)) {
                             innerExist = true;
+                            exist = true;
                             tipsWords.add(wordNew);
                         }
 
@@ -188,12 +189,15 @@ public class DistinctActivity extends BaseActivity {
                         }
 
                         if (TextUtils.equals(engSpell.substring(0, engSpell.length() -2), engSpellOrigin)) {
-                            innerExist = true;
+                            exist = true;
                             tipsWords.add(wordNew);
+                            break;
                         }
-
                     }
                 }
+            }
+
+            if (!exist) {
                 distinctList.add(wordNew);
             }
         }
@@ -201,7 +205,7 @@ public class DistinctActivity extends BaseActivity {
         StringBuilder stringBuilder = new StringBuilder();
         for (Word word : distinctList) {
             stringBuilder.append(word.getEnglishSpell());
-            stringBuilder.append(" ");
+            stringBuilder.append(",");
             stringBuilder.append(word.getChineseSpell());
             stringBuilder.append("\n");
         }
@@ -217,7 +221,7 @@ public class DistinctActivity extends BaseActivity {
             tipsSb.append("\n");
             tipsSb.append("\n");
             if (!tipsWords.isEmpty()) {
-                tipsSb.append("以下单词请人工检查：e,es结尾的");
+                tipsSb.append("以下单词已去重：e,es结尾的");
                 tipsSb.append("\n");
             }
             for (Word tipsWord : tipsWords) {
