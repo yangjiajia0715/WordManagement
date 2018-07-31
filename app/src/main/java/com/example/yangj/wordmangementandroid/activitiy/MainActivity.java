@@ -55,9 +55,9 @@ import io.reactivex.schedulers.Schedulers;
 
 /**
  * sentence = sentence.replaceAll("’s ", "'s ");
- sentence = sentence.replaceAll("’re ", "'re ");
- sentence = sentence.replaceAll("’m ", "'m ");
- sentence = sentence.replaceAll("’t ", "'t ");
+ * sentence = sentence.replaceAll("’re ", "'re ");
+ * sentence = sentence.replaceAll("’m ", "'m ");
+ * sentence = sentence.replaceAll("’t ", "'t ");
  */
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
@@ -498,6 +498,8 @@ public class MainActivity extends BaseActivity {
                         WordListInfoActivity.start(this, stringBuilder.toString());
                     }
                 }
+                break;
+            default:
                 break;
         }
     }

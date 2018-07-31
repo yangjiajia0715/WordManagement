@@ -3,6 +3,7 @@ package com.example.yangj.wordmangementandroid.activitiy;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.view.View;
@@ -38,6 +39,7 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
     TextView mTvSelectCount;
     private ArrayAdapter<String> mAdapter;
     private String mCurPath;
+    private boolean ready = false;
 
     public static void startForResult(Activity activity, int reqCode) {
         Intent starter = new Intent(activity, FileSelectorActivity.class);
@@ -51,6 +53,12 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
         ButterKnife.bind(this);
         setTitle("文件选择器");
         mTvSelectTips.setText("长按选择，返回即可！");
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                ready = true;
+            }
+        },5000);
         initView();
         initData();
     }
@@ -159,9 +167,10 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
     @Override
     public void onBackPressed() {
         if (TextUtils.isEmpty(mCurPath)) {
-            finish();
+            super.onBackPressed();
             return;
         }
+
         File file = new File(BASE_PATH);
         File fileCur = new File(mCurPath);
         if (file.getName().equals(fileCur.getName())) {
@@ -169,11 +178,13 @@ public class FileSelectorActivity extends BaseActivity implements AdapterView.On
         } else {
             fillDatas(fileCur.getParent());
         }
-
-
     }
 
     @OnClick(R.id.tv_select_count)
     public void onViewClicked() {
+    }
+
+    public boolean isReady() {
+        return ready;
     }
 }
