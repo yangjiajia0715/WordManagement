@@ -2,6 +2,8 @@ package com.yangjiajia.test;
 
 import android.app.Activity;
 import android.support.test.espresso.Espresso;
+import android.support.test.espresso.IdlingRegistry;
+import android.support.test.espresso.IdlingResource;
 import android.support.test.espresso.assertion.ViewAssertions;
 import android.support.test.espresso.matcher.ViewMatchers;
 import android.support.test.rule.ActivityTestRule;
@@ -9,6 +11,8 @@ import android.support.test.runner.AndroidJUnit4;
 
 import com.example.yangj.wordmangementandroid.activitiy.DistinctActivity;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +26,7 @@ public class DistinctActivityTest {
 
     @Rule
     public ActivityTestRule mActivityTestRule = new ActivityTestRule<>(DistinctActivity.class);
+    private IdingResourceA mIdingResourceA;
 
     @Test
     public void test() {
@@ -29,6 +34,44 @@ public class DistinctActivityTest {
 
         Espresso.onView(ViewMatchers.withText("知道了"))
                 .check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
+
+//        ViewMatchers.isNotChecked();
+
+    }
+
+    @Before
+    public void regist(){
+        mIdingResourceA = new IdingResourceA();
+        IdlingRegistry.getInstance().register(mIdingResourceA);
+    }
+
+    @After
+    public void unregist(){
+        IdlingRegistry.getInstance().unregister(mIdingResourceA);
+    }
+
+    public  class IdingResourceA implements IdlingResource{
+        ResourceCallback mResourceCallback;
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        @Override
+        public boolean isIdleNow() {
+
+            if (mResourceCallback != null) {
+                mResourceCallback.onTransitionToIdle();
+
+            }
+            return false;
+        }
+
+        @Override
+        public void registerIdleTransitionCallback(ResourceCallback callback) {
+            mResourceCallback = callback;
+        }
+
     }
 
 }

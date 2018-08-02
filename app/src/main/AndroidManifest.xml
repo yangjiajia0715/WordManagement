@@ -30,11 +30,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activitiy.WordListInfoActivity" />
+        <activity android:name=".activitiy.WordListInfoActivity" android:excludeFromRecents="true" />
         <activity android:name=".activitiy.MainActivity" />
         <activity android:name=".activitiy.QustionCheckActivity" />
         <activity android:name=".activitiy.UpdateWordActivity" />
-        <activity android:name=".activitiy.AddOrUpdateQustionActivity" />
         <activity android:name=".activitiy.FileSelectorActivity" />
         <activity android:name=".activitiy.WordCheckActivity" />
         <activity android:name=".activitiy.CourseCheckActivity" />
