@@ -1,6 +1,5 @@
 package com.yangjiajia.test;
 
-import android.app.Activity;
 import android.support.test.espresso.Espresso;
 import android.support.test.espresso.IdlingRegistry;
 import android.support.test.espresso.IdlingResource;
@@ -16,7 +15,6 @@ import com.example.yangj.wordmangementandroid.activitiy.FileSelectorActivity;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,21 +53,22 @@ public class FileSelectorActivityTest {
                 .perform(ViewActions.longClick());
 
 //        fileSelectorActivity.onBackPressed();
+
 //        Espresso.pressBack();
 
 //        RecyclerViewActions.actionOnItemAtPosition(27, click());
 
     }
 
-    @Before
-    public void registerIntentServiceIdlingResource() {
-        Log.d(TAG, "registerIntentServiceIdlingResource: ");
-
-        Activity activity = mActivityTestRule.getActivity();
-        mMyIdlingResource = new MyIdlingResource((FileSelectorActivity) activity);
-//        Espresso.registerIdlingResources(mMyIdlingResource);
-        IdlingRegistry.getInstance().register(mMyIdlingResource);
-    }
+//    @Before
+//    public void registerIntentServiceIdlingResource() {
+//        Log.d(TAG, "registerIntentServiceIdlingResource: ");
+//
+//        Activity activity = mActivityTestRule.getActivity();
+//        mMyIdlingResource = new MyIdlingResource((FileSelectorActivity) activity);
+////        Espresso.registerIdlingResources(mMyIdlingResource);
+//        IdlingRegistry.getInstance().register(mMyIdlingResource);
+//    }
 
     @After
     public void unregisterIntentServiceIdlingResource() {

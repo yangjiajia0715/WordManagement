@@ -87,6 +87,7 @@ public class GlideActivity extends BaseActivity {
                 Glide.with(this)
                         .load(mUrl3)
                         .placeholder(R.drawable.loading)
+//                        .sizeMultiplier(0.5f)
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .into(mIvGlide3);
                 break;
@@ -95,8 +96,18 @@ public class GlideActivity extends BaseActivity {
                         .load(mUrl3)
                         .placeholder(R.drawable.loading)
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
-                        .override(100,100)
                         .into(mIvGlide3);
+
+//                String tempURl = null;
+//                Glide.with(this)
+////                        .load(mUrl3)
+//                        .load(tempURl)
+//                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+////                        .fallback(R.drawable.homework)//优先级：1
+//                        .error(R.drawable.xueba)//优先级：2
+//                        .placeholder(R.drawable.loading)//优先级：3
+//                        .override(100 * 3, 100 * 3)
+//                        .into(mIvGlide3);
                 break;
             default:
                 break;
