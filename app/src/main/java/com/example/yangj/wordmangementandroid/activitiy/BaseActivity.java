@@ -296,6 +296,10 @@ public abstract class BaseActivity extends AppCompatActivity {
                             showAlertDialog("文件格式不正确：\n序列号和单词之间得有空格！\n或者前两个单词信息不够6行。\n行号：" + lineNumber);
                             return false;
                         }
+                        if (line.trim().split(" ").length < 3) {
+                            showAlertDialog("文件格式不正确：\n单词和释义之间得有空格！\n行号：" + lineNumber);
+                            return false;
+                        }
                         int lastIndexOf = line.lastIndexOf(" ");
                         String wordSpell = line.substring(number.length(), lastIndexOf).trim();
                         wordSpell = wordSpell.replaceAll(" ", "");

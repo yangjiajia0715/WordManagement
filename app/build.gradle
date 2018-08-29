@@ -9,6 +9,7 @@ android {
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
+        flavorDimensions "free"
     }
 
     //epresso 相关
@@ -30,6 +31,27 @@ android {
             minifyEnabled false
             buildConfigField "String", "IP_ADDRESS", ip_address_word_debug
         }
+
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java', 'src/main_extra/java'] //主版本
+//            java.srcDirs = ['src/main/java', 'src/chuangwei/java/']//定制
+            jniLibs.srcDirs = ['libs']
+        }
+        //chengshiwai { java.srcDirs = ['src/main/java', 'src/chengshiwai/java/'] }
+    }
+
+    productFlavors{
+
+//        learning{
+//            dimension "free"
+//        }
+//
+//        chuangwei{
+//            dimension "free"
+//        }
     }
 }
 

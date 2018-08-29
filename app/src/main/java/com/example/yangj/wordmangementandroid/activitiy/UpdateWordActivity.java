@@ -164,6 +164,8 @@ public class UpdateWordActivity extends BaseActivity {
             case R.id.btn_upload_word_image:
                 uploadWordImages(mWordAudioAndImagesDir);
                 break;
+            default:
+                break;
         }
     }
 
@@ -747,7 +749,7 @@ public class UpdateWordActivity extends BaseActivity {
 
             @Override
             public void onFailure(PutObjectRequest request, ClientException clientException, ServiceException serviceException) {
-                Log.d(TAG, "onFailure: " + request.getObjectKey());
+                Log.e(TAG, "onFailure: " + request.getObjectKey());
             }
         });
 

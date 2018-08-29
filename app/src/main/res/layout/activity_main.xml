@@ -8,11 +8,18 @@
     tools:context=".activitiy.MainActivity">
 
     <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="@string/word_tips"
+        android:textSize="15sp" />
+
+    <TextView
         android:id="@+id/tv_word_file_path"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="8dp"
-        android:text="请选择单词文件！"
+        android:text="请选择"
         android:textSize="15sp" />
 
     <LinearLayout
@@ -47,14 +54,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="上传单词" />
+            android:text="第1步：上传单词" />
     </LinearLayout>
 
     <Button
         android:id="@+id/btn_upload_questions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="上传非图片练习" />
+        android:text="第2步：上传非图片练习" />
 
     <TextView
         android:id="@+id/tv_question_file_path"
@@ -95,7 +102,7 @@
         android:id="@+id/btn_upload_questions_only_Images"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="上传练习OnlyImages" />
+        android:text="第4步：上传练习OnlyImages" />
 
     <Button
         android:id="@+id/btn_show_word_info"

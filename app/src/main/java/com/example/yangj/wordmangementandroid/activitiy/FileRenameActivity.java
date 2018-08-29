@@ -23,17 +23,20 @@ import butterknife.OnClick;
 
 /**
  * /**
- * 图片命名规则：egg
+ * 一、图片命名规则：egg
  * egg-rect-right-pic-1.png
  * egg-rect-right-pic-2.png
  * egg-rect-right-pic-3.png
  * egg-rect-wrong-pic.png
  * egg-square-pic.png
+ * 二、文件夹都有序号 逗号分隔： 01 egg
+ * 三、rect wrong:需要以"00"开头
  *
  * @see UpdateWordActivity#uploadWordImages(java.lang.String)
  */
 public class FileRenameActivity extends BaseActivity {
     private static final int REQ_SELECT_RENAME = 755;
+    private static final int REQ_VIEW = 756;
     private static final String TAG = "FileRenameActivity";
 
     @BindView(R.id.tv_rename_path)
@@ -77,10 +80,51 @@ public class FileRenameActivity extends BaseActivity {
                 }
                 break;
             case R.id.btn_select_rename_file_2:
+                addOrder();
                 break;
             case R.id.btn_select_rename_file_3:
+                FileSelectorActivity.startForResult(this, REQ_VIEW);
+                break;
+            default:
                 break;
         }
+    }
+
+    private boolean addOrder() {
+        if (TextUtils.isEmpty(mNeedRenameDir)) {
+            showAlertDialog("请选择目录！");
+            return false;
+        }
+
+        File file = new File(mNeedRenameDir);
+        if (!file.exists() || !file.isDirectory()) {
+            showAlertDialog("不是目录：" + file.getName());
+            return false;
+        }
+
+        File[] listFiles = file.listFiles();
+        if (listFiles == null || listFiles.length == 0) {
+            showAlertDialog("空目录：" + file.getName());
+            return false;
+        }
+        int index = 0;
+        for (int i = 0; i < listFiles.length; i++) {
+            File fileItem = listFiles[i];
+            String name = fileItem.getName().trim();
+            String newName;
+            if (i < 9) {
+                newName = "0" + (i + 1) + " " + name;
+            } else {
+                newName = (i + 1) + " " + name;
+            }
+            File renameFile = new File(fileItem.getParentFile(), newName);
+            boolean success = fileItem.renameTo(renameFile);
+            if (success) {
+                index++;
+            }
+        }
+        showAlertDialog("重命名成功：" + index + "/"  + listFiles.length);
+        return true;
     }
 
     /**
@@ -198,7 +242,7 @@ public class FileRenameActivity extends BaseActivity {
             String name = fileWord.getName().trim();
             String[] split = name.split(" ");
             if (split.length < 2) {
-                showAlertDialog("空格分割项小于2！" + name);
+                showAlertDialog("空格分割项小于2！如没添加序号请先给文件夹加序号；fileName:" + name);
                 return false;
             }
 
@@ -215,6 +259,33 @@ public class FileRenameActivity extends BaseActivity {
                 return false;
             }
 
+            //查找是否有00开头的
+            File[] listFiles = fileWord.listFiles();
+            if (listFiles != null) {
+                if (listFiles.length < 5) {
+                    showAlertDialog(fileWord.getName() + "没有矩形干扰图片，请检查");
+                    return false;
+                }
+                boolean exist00 = false;
+                int imageCount = 0;
+                for (File listFile : listFiles) {
+                    String fileName = listFile.getName();
+                    if (fileName.startsWith("00")) {
+                        exist00 = true;
+                    }
+                    if (fileName.endsWith("jpg") || fileName.endsWith("png")) {
+                        imageCount++;
+                    }
+                }
+                if (!exist00) {
+                    showAlertDialog(fileWord.getName() + "没有矩形干扰图片，请检查");
+                    return false;
+                }
+                if (imageCount < 5) {
+                    showAlertDialog(fileWord.getName() + "图片不全请检查");
+                    return false;
+                }
+            }
         }
 
         return true;

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">单词管理端</string>
+    <string name="word_tips">请选择单词文件！点击‘上传单词’，上传成功后返回重新进入解析-上传非图片练习，
+        非图片练习上传成功后返回点击‘更新单词：音频、例句，图片，音频最后上传’</string>
 </resources>
