@@ -101,6 +101,12 @@ public class DistinctActivity extends BaseActivity {
                 index++;
 
                 int indexOf = lineStr.indexOf(",");
+                if (indexOf < 0) {
+                    indexOf = lineStr.indexOf("\t");
+                }
+                if (indexOf < 0) {
+                    indexOf = lineStr.indexOf(" ");
+                }
                 Word word = new Word();
                 String engSpell = lineStr.substring(0, indexOf).trim();
                 String chineseSpell = lineStr.substring(indexOf + 1, lineStr.length()).trim();
